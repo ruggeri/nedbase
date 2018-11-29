@@ -69,9 +69,15 @@ impl BTree {
     let mut current_node_guard = {
       let root_identifier_guard = match RootIdentifierReadGuard::try_to_acquire(self) {
         None => {
-          // Write locks can be held higher up from our top_insert_node,
-          // thus blocking our read locks to verify. We must avoid this;
-          // if we can't acquire promptly we will start all over again.
+          // We can be blocked from descending if an ancestor lock is:
+          //
+          // (1) Currently held for reading,
+          // (2) A write lock is queued up,
+          // (3) The first lock cannot be cleared because it wants to
+          //     descend reading to our top target node.
+          //
+          // Thus we will cancel our locking attempt if such a scenario
+          // appears to occur.
           return false
         }
         Some(root_identifier_guard) => root_identifier_guard
@@ -85,7 +91,13 @@ impl BTree {
         return true;
       }
 
-      NodeReadGuard::acquire(self, root_identifier)
+      match NodeReadGuard::try_to_acquire(self, root_identifier) {
+        None => {
+          // See above for rationale.
+          return false
+        }
+        Some(node_guard) => node_guard
+      }
     };
 
     loop {
@@ -99,10 +111,7 @@ impl BTree {
 
           match NodeReadGuard::try_to_acquire(self, child_identifier) {
             None => {
-              // Write locks can be held higher up from our
-              // top_insert_node, thus blocking our read locks to
-              // verify. We must avoid this; if we can't acquire
-              // promptly we will start all over again.
+              // See above for rationale.
               return false
             }
             Some(node_guard) => node_guard
