@@ -1,0 +1,6 @@
+[package]
+name = "nedbase"
+version = "0.1.0"
+authors = ["Ned Ruggeri <ruggeri@self-loop.com>"]
+
+[dependencies]
