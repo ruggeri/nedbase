@@ -10,7 +10,8 @@ use rand::{
 };
 use std::collections::HashMap;
 use std::iter;
-use std::sync::{Arc, RwLock};
+use parking_lot::RwLock;
+use std::sync::{Arc};
 
 type IdentifierToNodeArcLockMap = HashMap<String, Arc<RwLock<Node>>>;
 pub struct BTree {
@@ -40,7 +41,7 @@ impl BTree {
 
 
   pub fn get_node_arc_lock(&self, identifier: &str) -> Arc<RwLock<Node>> {
-    let identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.read().expect("No thread should panic with map lock");
+    let identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.read();
     match identifier_to_nodes_map.get(identifier) {
       Some(node_lock) => Arc::clone(node_lock),
       None => panic!("Eventually should fetch from disk."),
@@ -56,7 +57,7 @@ impl BTree {
     };
 
     let node = Arc::new(RwLock::new(Node::LeafNode(ln)));
-    let mut identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.write().expect("No thread should panic with map lock");
+    let mut identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.write();
     identifier_to_nodes_map.insert(identifier.clone(), Arc::clone(&node));
 
     identifier
@@ -72,7 +73,7 @@ impl BTree {
     };
 
     let node = Arc::new(RwLock::new(Node::InteriorNode(interior_node)));
-    let mut identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.write().expect("No thread should panic with map lock");
+    let mut identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.write();
     identifier_to_nodes_map.insert(identifier.clone(), Arc::clone(&node));
 
     identifier

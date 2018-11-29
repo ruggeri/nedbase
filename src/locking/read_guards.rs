@@ -1,7 +1,8 @@
 use btree::BTree;
 use node::Node;
 use std::mem;
-use std::sync::{Arc, RwLock, RwLockReadGuard};
+use parking_lot::{RwLock, RwLockReadGuard};
+use std::sync::{Arc};
 use super::lock_target::LockTargetRef;
 
 pub struct NodeReadGuard<'a> {
@@ -16,7 +17,7 @@ impl<'a> NodeReadGuard<'a> {
   }
 
   pub fn acquire_from_lock(lock: Arc<RwLock<Node>>) -> NodeReadGuard<'a> {
-    let node = lock.read().expect("Other threads shouldn't panic with lock");
+    let node = lock.read();
     let guard = NodeReadGuard { lock: Arc::clone(&lock), node };
 
     unsafe {
@@ -38,7 +39,7 @@ pub struct RootIdentifierReadGuard<'a> {
 
 impl<'a> RootIdentifierReadGuard<'a> {
   pub fn acquire(btree: &'a BTree) -> RootIdentifierReadGuard<'a> {
-    let identifier = btree.root_identifier_lock.read().expect("Other threads shouldn't panic with lock");
+    let identifier = btree.root_identifier_lock.read();
     RootIdentifierReadGuard {
       identifier
     }

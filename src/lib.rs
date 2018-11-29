@@ -1,3 +1,4 @@
+extern crate parking_lot;
 extern crate rand;
 
 mod btree;
