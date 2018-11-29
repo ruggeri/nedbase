@@ -1,7 +1,7 @@
 use btree::BTree;
 use node::Node;
 use std::mem;
-use parking_lot::{RwLock, RwLockWriteGuard};
+use parking_lot::{RwLock, RwLockUpgradableReadGuard, RwLockWriteGuard};
 use std::sync::{Arc};
 use super::lock_target::LockTargetRef;
 
@@ -19,6 +19,29 @@ impl<'a> NodeWriteGuard<'a> {
     let node = lock.write();
     let guard = NodeWriteGuard { lock: Arc::clone(&lock), node };
     ::util::thread_log(&format!("acquired write lock on node {}", identifier));
+
+    unsafe {
+      mem::transmute(guard)
+    }
+  }
+
+  pub fn acquire_if_no_current_writers(btree: &BTree, identifier: &str) -> Option<NodeWriteGuard<'a>> {
+    ::util::thread_log(&format!("trying to acquire read lock for upgrade on node {}", identifier));
+    let lock = btree.get_node_arc_lock(&identifier);
+    let node = match lock.try_upgradable_read() {
+      None => {
+        ::util::thread_log(&format!("could not acquire read lock for upgrade on node {}", identifier));
+        return None
+      },
+      Some(upgradable_read_guard) => {
+        ::util::thread_log(&format!("acquired read lock for upgrade on node {}", identifier));
+        ::util::thread_log(&format!("trying to upgrade write lock on node {}", identifier));
+        RwLockUpgradableReadGuard::upgrade(upgradable_read_guard)
+      }
+    };
+    ::util::thread_log(&format!("did upgrade write lock on node {}", identifier));
+
+    let guard = Some(NodeWriteGuard { lock: Arc::clone(&lock), node });
 
     unsafe {
       mem::transmute(guard)
@@ -43,9 +66,30 @@ impl<'a> RootIdentifierWriteGuard<'a> {
     ::util::thread_log("trying to acquire write lock on root identifier");
     let identifier = btree.root_identifier_lock.write();
     ::util::thread_log("did acquire write lock on root identifier");
+
     RootIdentifierWriteGuard {
       identifier
     }
+  }
+
+  pub fn acquire_if_no_current_writers(btree: &'a BTree) -> Option<RootIdentifierWriteGuard<'a>> {
+    ::util::thread_log("trying to acquire read lock for upgrade on root identifier");
+    let identifier = match btree.root_identifier_lock.try_upgradable_read() {
+      None => {
+        ::util::thread_log("could not acquire read lock for upgrade on root identifier");
+        return None;
+      },
+      Some(upgradable_read_guard) => {
+        ::util::thread_log("acquired read lock for upgrade on root identifier");
+        ::util::thread_log("trying to upgrade read lock on root identifier");
+        RwLockUpgradableReadGuard::upgrade(upgradable_read_guard)
+      }
+    };
+    ::util::thread_log("did upgrade write lock on root identifier");
+
+    Some(RootIdentifierWriteGuard {
+      identifier
+    })
   }
 }
 
@@ -70,6 +114,19 @@ impl<'a> WriteGuard<'a> {
       },
       LockTargetRef::NodeTarget { identifier } => {
         WriteGuard::NodeWriteGuard(NodeWriteGuard::acquire(btree, identifier))
+      }
+    }
+  }
+
+  pub fn acquire_if_no_current_writers(btree: &'a BTree, target: LockTargetRef) -> Option<WriteGuard<'a>> {
+    match target {
+      LockTargetRef::RootIdentifierTarget => {
+        RootIdentifierWriteGuard::acquire_if_no_current_writers(btree)
+          .map(WriteGuard::RootIdentifierWriteGuard)
+      },
+      LockTargetRef::NodeTarget { identifier } => {
+        NodeWriteGuard::acquire_if_no_current_writers(btree, identifier)
+          .map(WriteGuard::NodeWriteGuard)
       }
     }
   }
