@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::thread;
 
 const MAX_KEYS_PER_NODE: usize = 128;
-const NUM_INSERTIONS_PER_THREAD: u32 = 10_000;
-const NUM_THREADS: u32 = 4;
+const NUM_INSERTIONS_PER_THREAD: u32 = 10;
+const NUM_THREADS: u32 = 64;
 
 fn perform_insertions(btree: &BTree) {
   let mut insertions = vec![];
@@ -16,11 +16,13 @@ fn perform_insertions(btree: &BTree) {
     btree.insert(insertion.clone());
   }
 
-  for insertion in insertions {
-    if !btree.contains_key(&insertion) {
-      println!("Dropped key: {}", insertion);
-    }
-  }
+  // for insertion in insertions {
+  //   if !btree.contains_key(&insertion) {
+  //     println!("Dropped key: {}", insertion);
+  //   }
+  // }
+
+  nedbase::util::thread_log("completed");
 }
 
 fn main() {
