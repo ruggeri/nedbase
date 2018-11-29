@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::thread;
 
 const MAX_KEYS_PER_NODE: usize = 128;
-const NUM_INSERTIONS_PER_THREAD: u32 = 100;
-const NUM_THREADS: u32 = 5;
+const NUM_INSERTIONS_PER_THREAD: u32 = 10_000;
+const NUM_THREADS: u32 = 4;
 
 fn perform_insertions(btree: &BTree) {
   let mut insertions = vec![];
