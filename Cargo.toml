@@ -6,3 +6,4 @@ authors = ["Ned Ruggeri <ruggeri@self-loop.com>"]
 [dependencies]
 parking_lot = "0.6"
 rand = "0.6.1"
+rental = "0.5.2"

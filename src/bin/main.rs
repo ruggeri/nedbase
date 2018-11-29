@@ -4,25 +4,39 @@ use nedbase::BTree;
 use std::sync::Arc;
 use std::thread;
 
-const MAX_KEYS_PER_NODE: usize = 128;
-const NUM_INSERTIONS_PER_THREAD: u32 = 10;
-const NUM_THREADS: u32 = 64;
+const MAX_KEYS_PER_NODE: usize = 1024;
+const NUM_INSERTIONS_PER_THREAD: u32 = 1_000;
+const NUM_THREADS: u32 = 1024;
 
-fn perform_insertions(btree: &BTree) {
+struct PanicChecker {}
+
+impl Drop for PanicChecker {
+  fn drop(&mut self) {
+    if ::std::thread::panicking() {
+      println!("SOMEONE HAS PANICKED?");
+    } else {
+      // println!("thread has completed")
+    }
+  }
+}
+
+fn perform_insertions(btree: &Arc<BTree>) {
+  let panic_checker = PanicChecker {} ;
+
   let mut insertions = vec![];
   for _ in 0..NUM_INSERTIONS_PER_THREAD {
     let insertion = BTree::get_new_identifier();
     insertions.push(insertion.clone());
-    btree.insert(insertion.clone());
+    BTree::insert(btree, insertion.clone());
   }
 
-  // for insertion in insertions {
-  //   if !btree.contains_key(&insertion) {
-  //     println!("Dropped key: {}", insertion);
-  //   }
-  // }
+  for insertion in insertions {
+    if !BTree::contains_key(btree, &insertion) {
+      println!("Dropped key: {}", insertion);
+    }
+  }
 
-  nedbase::util::thread_log("completed");
+  nedbase::util::_thread_log("thread_terminated");
 }
 
 fn main() {
