@@ -123,16 +123,14 @@ impl BTree {
           .unwrap_node_write_guard_ref("last write_guard should be a node guard")
           .node;
 
+        let child_identifier = match &(**current_node_guard) {
+          Node::LeafNode(_) => break,
+          Node::InteriorNode(inode) => inode.child_identifier_by_key(key),
+        };
+
         // TODO: May be able to release prior locks if we hit a stable
         // lock.
-
-        match &(**current_node_guard) {
-          Node::LeafNode(_) => break,
-          Node::InteriorNode(inode) => {
-            let child_identifier = inode.child_identifier_by_key(key);
-            WriteGuard::acquire(self, LockTargetRef::NodeTarget { identifier: child_identifier })
-          }
-        }
+        WriteGuard::acquire(self, LockTargetRef::NodeTarget { identifier: child_identifier })
       };
 
       write_guards.push(next_write_guard);
