@@ -9,7 +9,6 @@ use locking::{
 };
 use node::{
   InsertionResult,
-  InteriorNode,
   Node,
 };
 use super::common::BTree;
@@ -120,10 +119,9 @@ impl BTree {
     loop {
       let next_write_guard = {
         let last_guard = write_guards.last().expect("write_guards should be non-empty");
-        let current_node_guard = match last_guard {
-          WriteGuard::RootIdentifierWriteGuard(..) => panic!("last write_guard should be a node guard"),
-          WriteGuard::NodeWriteGuard(NodeWriteGuard { node, .. }) => node
-        };
+        let current_node_guard = &last_guard
+          .unwrap_node_write_guard_ref("last write_guard should be a node guard")
+          .node;
 
         // TODO: May be able to release prior locks if we hit a stable
         // lock.
@@ -151,38 +149,36 @@ impl BTree {
       }
     };
 
-    let mut last_write_guard = write_guards.pop().expect("should acquire at least one write guard");
-    let current_node_guard = match &mut last_write_guard {
-      WriteGuard::RootIdentifierWriteGuard(..) => panic!("Expected node guard"),
-      WriteGuard::NodeWriteGuard(NodeWriteGuard { ref mut node, .. }) => node
-    };
+    let last_write_guard = write_guards.pop().expect("should acquire at least one write guard");
+    let mut current_node_guard = last_write_guard
+      .unwrap_node_write_guard("last write_guard should be a node guard")
+      .node;
 
-    let insertion_result = match &mut (**current_node_guard) {
-      Node::InteriorNode(..) => panic!("Expected leaf node to insert into"),
-      Node::LeafNode(ln) => ln.insert(self, key),
-    };
+    let mut insertion_result = current_node_guard
+      .unwrap_leaf_node_mut_ref("Expected leaf node to insert into at bottom")
+      .insert(self, key);
 
     while let InsertionResult::DidInsertWithSplit(child_split_info) = insertion_result {
       let mut last_write_guard = write_guards.pop().expect("should not run out of write guards");
 
-      match &mut last_write_guard {
-        WriteGuard::RootIdentifierWriteGuard(RootIdentifierWriteGuard { identifier }) => {
+      match last_write_guard {
+        WriteGuard::RootIdentifierWriteGuard(RootIdentifierWriteGuard { mut identifier }) => {
           let new_root_identifier = self.store_new_interior_node(
             vec![child_split_info.new_median],
             vec![child_split_info.new_left_identifier, child_split_info.new_right_identifier],
           );
 
-          **identifier = new_root_identifier;
+          *identifier = new_root_identifier;
 
           return
         },
-        WriteGuard::NodeWriteGuard(NodeWriteGuard { ref mut node, .. }) => {
 
-          unimplemented!()
+        WriteGuard::NodeWriteGuard(NodeWriteGuard { mut node, .. }) => {
+          insertion_result = node
+            .unwrap_interior_node_mut_ref("expected interior node")
+            .handle_split(self, child_split_info);
         }
       };
     }
-
-    unimplemented!()
   }
 }

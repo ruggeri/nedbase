@@ -31,19 +31,12 @@ impl InteriorNode {
     self.splits.len() < self.max_key_capacity
   }
 
-  pub fn handle_split(&mut self, btree: &BTree, child_result: InsertionResult) -> InsertionResult {
-    let child_split_info = match child_result {
-      InsertionResult::DidInsert => return InsertionResult::DidInsert,
-      InsertionResult::KeyWasAlreadyInserted => return InsertionResult::KeyWasAlreadyInserted,
-      InsertionResult::DidInsertWithSplit(split_info) => split_info,
-    };
+  pub fn handle_split(&mut self, btree: &BTree, child_split_info: SplitInfo) -> InsertionResult {
+    let old_child_idx = self.child_identifiers.iter().position(|id| {
+      *id == child_split_info.old_identifier
+    }).expect("Where did the child's identifier go?");
 
     if self.can_grow_without_split() {
-      let old_child_idx = match search_strings_for_str(&self.child_identifiers, &child_split_info.old_identifier) {
-        Ok(idx) => idx,
-        Err(_) => panic!("Where did the child's identifier go?"),
-      };
-
       self.splits.insert(old_child_idx, child_split_info.new_median);
       self.child_identifiers[old_child_idx] = child_split_info.new_left_identifier;
       self.child_identifiers.insert(
@@ -65,20 +58,15 @@ impl InteriorNode {
     let mut right_child_identifiers = self.child_identifiers[(new_median_idx + 1)..].to_vec();
 
     {
-      let (splits, identifiers) = if child_split_info.old_identifier <= new_median {
-        (&mut left_splits, &mut left_child_identifiers)
+      let (splits, identifiers, old_child_idx) = if old_child_idx < left_child_identifiers.len() {
+        (&mut left_splits, &mut left_child_identifiers, old_child_idx)
       } else {
-        (&mut right_splits, &mut right_child_identifiers)
+        (&mut right_splits, &mut right_child_identifiers, old_child_idx - left_child_identifiers.len())
       };
 
-      let insertion_idx = match search_strings_for_str(&splits, &child_split_info.old_identifier) {
-        Ok(_) => panic!("When was insertion key inserted?"),
-        Err(idx) => idx,
-      };
-
-      splits.insert(insertion_idx, child_split_info.new_median);
-      identifiers[insertion_idx] = child_split_info.new_left_identifier;
-      identifiers.insert(insertion_idx + 1, child_split_info.new_right_identifier);
+      splits.insert(old_child_idx, child_split_info.new_median);
+      identifiers[old_child_idx] = child_split_info.new_left_identifier;
+      identifiers.insert(old_child_idx + 1, child_split_info.new_right_identifier);
     }
 
     let new_left_identifier = btree.store_new_interior_node(left_splits, left_child_identifiers);

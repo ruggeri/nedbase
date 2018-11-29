@@ -4,7 +4,12 @@ use node::{
   Node,
 };
 
+use rand::{
+  distributions::Alphanumeric,
+  prelude::*
+};
 use std::collections::HashMap;
+use std::iter;
 use std::sync::{Arc, RwLock};
 
 type IdentifierToNodeArcLockMap = HashMap<String, Arc<RwLock<Node>>>;
@@ -15,6 +20,25 @@ pub struct BTree {
 }
 
 impl BTree {
+  pub fn new(max_key_capacity: usize) -> BTree {
+    let root_identifier: String = BTree::get_new_identifier();
+    let root_node = Node::LeafNode(LeafNode {
+      identifier: root_identifier.clone(),
+      keys: vec![],
+      max_key_capacity,
+    });
+
+    let mut identifier_to_node_arc_lock_map = HashMap::new();
+    identifier_to_node_arc_lock_map.insert(root_identifier.clone(), Arc::new(RwLock::new(root_node)));
+
+    BTree {
+      root_identifier_lock: RwLock::new(root_identifier.clone()),
+      identifier_to_node_arc_lock_map: RwLock::new(identifier_to_node_arc_lock_map),
+      max_key_capacity,
+    }
+  }
+
+
   pub fn get_node_arc_lock(&self, identifier: &str) -> Arc<RwLock<Node>> {
     let identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.read().expect("No thread should panic with map lock");
     match identifier_to_nodes_map.get(identifier) {
@@ -24,7 +48,7 @@ impl BTree {
   }
 
   pub fn store_new_leaf_node(&self, keys: Vec<String>) -> String {
-    let identifier = self.get_new_identifier();
+    let identifier = BTree::get_new_identifier();
     let ln = LeafNode {
       identifier: identifier.clone(),
       keys,
@@ -39,7 +63,7 @@ impl BTree {
   }
 
   pub fn store_new_interior_node(&self, splits: Vec<String>, child_identifiers: Vec<String>) -> String {
-    let identifier = self.get_new_identifier();
+    let identifier = BTree::get_new_identifier();
     let interior_node = InteriorNode {
       identifier: identifier.clone(),
       splits,
@@ -54,7 +78,13 @@ impl BTree {
     identifier
   }
 
-  fn get_new_identifier(&self) -> String {
-    unimplemented!()
+  pub fn get_new_identifier() -> String {
+    let mut rng = thread_rng();
+    let chars: String = iter::repeat(())
+        .map(|()| rng.sample(Alphanumeric))
+        .take(16)
+        .collect();
+
+    chars
   }
 }

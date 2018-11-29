@@ -56,4 +56,18 @@ impl<'a> WriteGuard<'a> {
       }
     }
   }
+
+  pub fn unwrap_node_write_guard_ref(&self, message: &'static str) -> &NodeWriteGuard {
+    match self {
+      WriteGuard::RootIdentifierWriteGuard(..) => panic!(message),
+      WriteGuard::NodeWriteGuard(nwg) => nwg
+    }
+  }
+
+  pub fn unwrap_node_write_guard(self, message: &'static str) -> NodeWriteGuard<'a> {
+    match self {
+      WriteGuard::RootIdentifierWriteGuard(..) => panic!(message),
+      WriteGuard::NodeWriteGuard(nwg) => nwg
+    }
+  }
 }
