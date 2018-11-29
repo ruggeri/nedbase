@@ -67,7 +67,15 @@ impl BTree {
     let top_insert_node_identifier = String::from(top_insert_node.identifier());
 
     let mut current_node_guard = {
-      let root_identifier_guard = RootIdentifierReadGuard::acquire(self);
+      let root_identifier_guard = match RootIdentifierReadGuard::try_to_acquire(self) {
+        None => {
+          // Write locks can be held higher up from our top_insert_node,
+          // thus blocking our read locks to verify. We must avoid this;
+          // if we can't acquire promptly we will start all over again.
+          return false
+        }
+        Some(root_identifier_guard) => root_identifier_guard
+      };
       let root_identifier = root_identifier_guard.identifier.as_ref();
 
       // Notice how I never acquire a lock without first checking if
@@ -89,7 +97,16 @@ impl BTree {
             return true;
           }
 
-          NodeReadGuard::acquire(self, child_identifier)
+          match NodeReadGuard::try_to_acquire(self, child_identifier) {
+            None => {
+              // Write locks can be held higher up from our
+              // top_insert_node, thus blocking our read locks to
+              // verify. We must avoid this; if we can't acquire
+              // promptly we will start all over again.
+              return false
+            }
+            Some(node_guard) => node_guard
+          }
         }
       }
     }
