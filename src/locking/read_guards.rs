@@ -25,6 +25,13 @@ impl<'a> NodeReadGuard<'a> {
   }
 }
 
+impl<'a> Drop for NodeReadGuard<'a> {
+  fn drop(&mut self) {
+    // I've put this here to prohibit anyone from moving the read guard
+    // out. That seems dangerous (is it though?).
+  }
+}
+
 pub struct RootIdentifierReadGuard<'a> {
   pub identifier: RwLockReadGuard<'a, String>,
 }

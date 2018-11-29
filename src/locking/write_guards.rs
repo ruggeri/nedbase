@@ -27,6 +27,13 @@ impl<'a> NodeWriteGuard<'a> {
   }
 }
 
+impl<'a> Drop for NodeWriteGuard<'a> {
+  fn drop(&mut self) {
+    // I've put this here to prohibit anyone from moving the write guard
+    // out. That seems dangerous (is it though?).
+  }
+}
+
 pub struct RootIdentifierWriteGuard<'a> {
   pub identifier: RwLockWriteGuard<'a, String>,
 }

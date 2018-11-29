@@ -149,14 +149,15 @@ impl BTree {
       }
     };
 
-    let last_write_guard = write_guards.pop().expect("should acquire at least one write guard");
-    let mut current_node_guard = last_write_guard
-      .unwrap_node_write_guard("last write_guard should be a node guard")
-      .node;
-
-    let mut insertion_result = current_node_guard
-      .unwrap_leaf_node_mut_ref("Expected leaf node to insert into at bottom")
-      .insert(self, key);
+    let mut insertion_result = {
+      let last_write_guard = write_guards.pop().expect("should acquire at least one write guard");
+      let mut current_node_guard = last_write_guard
+        .unwrap_node_write_guard("last write_guard should be a node guard");
+      current_node_guard
+        .node
+        .unwrap_leaf_node_mut_ref("Expected leaf node to insert into at bottom")
+        .insert(self, key)
+    };
 
     while let InsertionResult::DidInsertWithSplit(child_split_info) = insertion_result {
       let mut last_write_guard = write_guards.pop().expect("should not run out of write guards");
@@ -173,7 +174,7 @@ impl BTree {
           return
         },
 
-        WriteGuard::NodeWriteGuard(NodeWriteGuard { mut node, .. }) => {
+        WriteGuard::NodeWriteGuard(NodeWriteGuard { ref mut node, .. }) => {
           insertion_result = node
             .unwrap_interior_node_mut_ref("expected interior node")
             .handle_split(self, child_split_info);
