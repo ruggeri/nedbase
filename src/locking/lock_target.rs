@@ -1,9 +1,10 @@
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub enum LockTargetRef<'a> {
   RootIdentifierTarget,
   NodeTarget { identifier: &'a str }
 }
 
+#[derive(Clone, Eq, PartialEq)]
 pub enum LockTarget {
   RootIdentifierTarget,
   NodeTarget { identifier: String }

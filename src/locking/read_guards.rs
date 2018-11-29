@@ -1,4 +1,5 @@
 use btree::BTree;
+use locking::LockTargetRef;
 use std::sync::{Arc};
 
 rental! {
@@ -54,6 +55,10 @@ impl NodeReadGuard {
       }
     }).ok()
   }
+
+  pub fn location(&self) -> LockTargetRef {
+    LockTargetRef::NodeTarget { identifier: self.identifier() }
+  }
 }
 
 // impl Drop for NodeReadGuard {
@@ -90,6 +95,10 @@ impl RootIdentifierReadGuard {
       }
     }).ok()
   }
+
+  pub fn location(&self) -> LockTargetRef {
+    LockTargetRef::RootIdentifierTarget
+  }
 }
 
 // impl Drop for RootIdentifierReadGuard {
@@ -100,20 +109,47 @@ impl RootIdentifierReadGuard {
 //   }
 // }
 
-// pub enum ReadGuard {
-//   RootIdentifierReadGuard(RootIdentifierReadGuard),
-//   NodeReadGuard(NodeReadGuard),
-// }
+pub enum ReadGuard {
+  RootIdentifierReadGuard(RootIdentifierReadGuard),
+  NodeReadGuard(NodeReadGuard),
+}
 
-// impl ReadGuard {
-//   pub fn acquire(btree: &Arc<BTree>, target: LockTargetRef) -> ReadGuard {
-//     match target {
-//       LockTargetRef::RootIdentifierTarget => {
-//         ReadGuard::RootIdentifierReadGuard(RootIdentifierReadGuard::acquire(btree))
-//       },
-//       LockTargetRef::NodeTarget { identifier } => {
-//         ReadGuard::NodeReadGuard(NodeReadGuard::acquire(btree, identifier))
-//       }
-//     }
-//   }
-// }
+impl ReadGuard {
+  pub fn acquire(btree: &Arc<BTree>, target: LockTargetRef) -> ReadGuard {
+    match target {
+      LockTargetRef::RootIdentifierTarget => {
+        ReadGuard::RootIdentifierReadGuard(RootIdentifierReadGuard::acquire(btree))
+      },
+      LockTargetRef::NodeTarget { identifier } => {
+        ReadGuard::NodeReadGuard(NodeReadGuard::acquire(btree, identifier))
+      }
+    }
+  }
+
+  pub fn try_to_acquire(btree: &Arc<BTree>, target: LockTargetRef) -> Option<ReadGuard> {
+    match target {
+      LockTargetRef::RootIdentifierTarget => {
+        RootIdentifierReadGuard::try_to_acquire(btree)
+          .map(ReadGuard::RootIdentifierReadGuard)
+      },
+      LockTargetRef::NodeTarget { identifier } => {
+        NodeReadGuard::try_to_acquire(btree, identifier)
+          .map(ReadGuard::NodeReadGuard)
+      }
+    }
+  }
+
+  pub fn location(&self) -> LockTargetRef {
+    match self {
+      ReadGuard::RootIdentifierReadGuard(guard) => guard.location(),
+      ReadGuard::NodeReadGuard(guard) => guard.location(),
+    }
+  }
+
+  pub fn unwrap_node_read_guard_ref(&self, message: &'static str) -> &NodeReadGuard {
+    match self {
+      ReadGuard::RootIdentifierReadGuard(..) => panic!(message),
+      ReadGuard::NodeReadGuard(node_guard) => node_guard
+    }
+  }
+}

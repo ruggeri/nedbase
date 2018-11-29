@@ -67,6 +67,10 @@ impl NodeWriteGuard {
   //     mem::transmute(guard)
   //   }
   // }
+
+  pub fn location(&self) -> LockTargetRef {
+    LockTargetRef::NodeTarget { identifier: self.identifier() }
+  }
 }
 
 // impl Drop for NodeWriteGuard {
@@ -112,6 +116,10 @@ impl RootIdentifierWriteGuard {
   //     identifier
   //   })
   // }
+
+  pub fn location(&self) -> LockTargetRef {
+    LockTargetRef::RootIdentifierTarget
+  }
 }
 
 // impl Drop for RootIdentifierWriteGuard {
@@ -163,6 +171,13 @@ impl WriteGuard {
     match self {
       WriteGuard::RootIdentifierWriteGuard(..) => panic!(message),
       WriteGuard::NodeWriteGuard(nwg) => nwg
+    }
+  }
+
+  pub fn location(&self) -> LockTargetRef {
+    match self {
+      WriteGuard::RootIdentifierWriteGuard(guard) => guard.location(),
+      WriteGuard::NodeWriteGuard(guard) => guard.location(),
     }
   }
 }
