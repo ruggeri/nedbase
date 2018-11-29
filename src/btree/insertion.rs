@@ -103,17 +103,15 @@ impl BTree {
       return WriteLockAcquisitionResult::TopWriteLockVerificationFailed;
     }
 
-    let mut write_guards = vec![];
-    match top_insert_guard {
+    let mut write_guards = vec![top_insert_guard];
+    if let Some(root_node_guard) = match &write_guards[0] {
       WriteGuard::RootIdentifierWriteGuard(RootIdentifierWriteGuard { identifier }) => {
         let root_node_guard = WriteGuard::acquire(self, LockTargetRef::NodeTarget { identifier: &(*identifier) });
-
-        write_guards.push(WriteGuard::RootIdentifierWriteGuard(RootIdentifierWriteGuard { identifier }));
-        write_guards.push(root_node_guard);
-      },
-      node_guard @ WriteGuard::NodeWriteGuard(..) => {
-        write_guards.push(node_guard);
+        Some(root_node_guard)
       }
+      WriteGuard::NodeWriteGuard(..) => None
+    } {
+      write_guards.push(root_node_guard);
     }
 
     loop {

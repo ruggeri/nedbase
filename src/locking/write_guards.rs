@@ -47,6 +47,7 @@ impl<'a> RootIdentifierWriteGuard<'a> {
       identifier
     }
   }
+}
 
 impl<'a> Drop for RootIdentifierWriteGuard<'a> {
   fn drop(&mut self) {
