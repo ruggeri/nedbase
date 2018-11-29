@@ -57,8 +57,14 @@ impl BTree {
     };
 
     let node = Arc::new(RwLock::new(Node::LeafNode(ln)));
-    let mut identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.write();
-    identifier_to_nodes_map.insert(identifier.clone(), Arc::clone(&node));
+
+    {
+      ::util::thread_log("trying to acquire write lock of node map");
+      let mut identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.write();
+      ::util::thread_log("acquired write lock of node map");
+      identifier_to_nodes_map.insert(identifier.clone(), Arc::clone(&node));
+    }
+    ::util::thread_log("released write lock of node map");
 
     identifier
   }
@@ -73,8 +79,14 @@ impl BTree {
     };
 
     let node = Arc::new(RwLock::new(Node::InteriorNode(interior_node)));
-    let mut identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.write();
-    identifier_to_nodes_map.insert(identifier.clone(), Arc::clone(&node));
+
+    {
+      ::util::thread_log("trying to acquire write lock of node map");
+      let mut identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.write();
+      ::util::thread_log("acquired write lock of node map");
+      identifier_to_nodes_map.insert(identifier.clone(), Arc::clone(&node));
+    }
+    ::util::thread_log("released write lock of node map");
 
     identifier
   }

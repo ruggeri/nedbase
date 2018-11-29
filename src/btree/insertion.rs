@@ -161,13 +161,13 @@ impl BTree {
       let mut last_write_guard = write_guards.pop().expect("should not run out of write guards");
 
       match last_write_guard {
-        WriteGuard::RootIdentifierWriteGuard(RootIdentifierWriteGuard { mut identifier }) => {
+        WriteGuard::RootIdentifierWriteGuard(RootIdentifierWriteGuard { ref mut identifier }) => {
           let new_root_identifier = self.store_new_interior_node(
             vec![child_split_info.new_median],
             vec![child_split_info.new_left_identifier, child_split_info.new_right_identifier],
           );
 
-          *identifier = new_root_identifier;
+          **identifier = new_root_identifier;
 
           return
         },

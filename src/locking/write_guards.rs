@@ -14,13 +14,11 @@ pub struct NodeWriteGuard<'a> {
 
 impl<'a> NodeWriteGuard<'a> {
   pub fn acquire(btree: &BTree, identifier: &str) -> NodeWriteGuard<'a> {
+    ::util::thread_log(&format!("trying to acquire write lock on node {}", identifier));
     let lock = btree.get_node_arc_lock(&identifier);
-    NodeWriteGuard::acquire_from_lock(lock)
-  }
-
-  pub fn acquire_from_lock(lock: Arc<RwLock<Node>>) -> NodeWriteGuard<'a> {
     let node = lock.write();
     let guard = NodeWriteGuard { lock: Arc::clone(&lock), node };
+    ::util::thread_log(&format!("acquired write lock on node {}", identifier));
 
     unsafe {
       mem::transmute(guard)
@@ -32,6 +30,7 @@ impl<'a> Drop for NodeWriteGuard<'a> {
   fn drop(&mut self) {
     // I've put this here to prohibit anyone from moving the write guard
     // out. That seems dangerous (is it though?).
+    ::util::thread_log(&format!("released write lock on node {}", self.node.identifier()));
   }
 }
 
@@ -41,10 +40,19 @@ pub struct RootIdentifierWriteGuard<'a> {
 
 impl<'a> RootIdentifierWriteGuard<'a> {
   pub fn acquire(btree: &'a BTree) -> RootIdentifierWriteGuard<'a> {
+    ::util::thread_log("trying to acquire write lock on root identifier");
     let identifier = btree.root_identifier_lock.write();
+    ::util::thread_log("did acquire write lock on root identifier");
     RootIdentifierWriteGuard {
       identifier
     }
+  }
+
+impl<'a> Drop for RootIdentifierWriteGuard<'a> {
+  fn drop(&mut self) {
+    // I've put this here to prohibit anyone from moving the write guard
+    // out. That seems dangerous (is it though?).
+    ::util::thread_log("released write lock on root identifier");
   }
 }
 
