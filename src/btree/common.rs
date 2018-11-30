@@ -1,23 +1,13 @@
-use node::{
-  InteriorNode,
-  LeafNode,
-  Node,
-};
-
-use rand::{
-  distributions::Alphanumeric,
-  prelude::*
-};
-use std::collections::HashMap;
-use std::iter;
+use node::{LeafNode, Node};
 use parking_lot::RwLock;
-use std::sync::{Arc};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 type IdentifierToNodeArcLockMap = HashMap<String, Arc<RwLock<Node>>>;
 pub struct BTree {
-  pub root_identifier_lock: RwLock<String>,
-  identifier_to_node_arc_lock_map: RwLock<IdentifierToNodeArcLockMap>,
-  pub max_key_capacity: usize,
+  pub(in btree) root_identifier_lock: RwLock<String>,
+  pub(in btree) identifier_to_node_arc_lock_map: RwLock<IdentifierToNodeArcLockMap>,
+  pub(in btree) max_key_capacity: usize,
 }
 
 impl BTree {
@@ -55,58 +45,5 @@ impl BTree {
     ::util::log_node_map_locking("released read lock of node map");
 
     node_lock
-  }
-
-  pub fn store_new_leaf_node(&self, keys: Vec<String>) -> String {
-    let identifier = BTree::get_new_identifier();
-    let ln = LeafNode {
-      identifier: identifier.clone(),
-      keys,
-      max_key_capacity: self.max_key_capacity,
-    };
-
-    let node = Arc::new(RwLock::new(Node::LeafNode(ln)));
-
-    {
-      ::util::log_node_map_locking("trying to acquire write lock of node map");
-      let mut identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.write();
-      ::util::log_node_map_locking("acquired write lock of node map");
-      identifier_to_nodes_map.insert(identifier.clone(), Arc::clone(&node));
-    }
-    ::util::log_node_map_locking("released write lock of node map");
-
-    identifier
-  }
-
-  pub fn store_new_interior_node(&self, splits: Vec<String>, child_identifiers: Vec<String>) -> String {
-    let identifier = BTree::get_new_identifier();
-    let interior_node = InteriorNode {
-      identifier: identifier.clone(),
-      splits,
-      child_identifiers,
-      max_key_capacity: self.max_key_capacity,
-    };
-
-    let node = Arc::new(RwLock::new(Node::InteriorNode(interior_node)));
-
-    {
-      ::util::log_node_map_locking("trying to acquire write lock of node map");
-      let mut identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.write();
-      ::util::log_node_map_locking("acquired write lock of node map");
-      identifier_to_nodes_map.insert(identifier.clone(), Arc::clone(&node));
-    }
-    ::util::log_node_map_locking("released write lock of node map");
-
-    identifier
-  }
-
-  pub fn get_new_identifier() -> String {
-    let mut rng = thread_rng();
-    let chars: String = iter::repeat(())
-        .map(|()| rng.sample(Alphanumeric))
-        .take(32)
-        .collect();
-
-    chars
   }
 }

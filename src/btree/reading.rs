@@ -1,10 +1,10 @@
+use btree::BTree;
 use locking::{
   NodeReadGuard,
   RootIdentifierReadGuard,
 };
 use node::Node;
 use std::sync::Arc;
-use super::BTree;
 
 impl BTree {
   pub fn find_leaf_for_key(btree: &Arc<BTree>, key: &str) -> NodeReadGuard {

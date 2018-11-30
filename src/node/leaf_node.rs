@@ -12,6 +12,10 @@ pub struct LeafNode {
 }
 
 impl LeafNode {
+  pub fn new(identifier: String, keys: Vec<String>, max_key_capacity: usize) -> LeafNode {
+    LeafNode { identifier, keys, max_key_capacity }
+  }
+
   pub fn contains_key(&self, key: &str) -> bool {
     search_sorted_strings_for_str(&self.keys, key).is_ok()
   }
