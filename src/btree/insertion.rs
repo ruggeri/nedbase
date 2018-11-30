@@ -1,6 +1,5 @@
 use locking::{
   LockTarget,
-  LockTargetRef,
   NodeReadGuard,
   NodeWriteGuard,
   ReadGuard,
@@ -51,7 +50,7 @@ impl BTree {
           Node::LeafNode(_) => break,
           Node::InteriorNode(inode) => {
             let child_identifier = inode.child_identifier_by_key(key);
-            ReadGuard::acquire(btree, LockTargetRef::NodeTarget { identifier: child_identifier})
+            ReadGuard::acquire_node_read_guard(btree, child_identifier)
           }
         }
       };
@@ -80,21 +79,18 @@ impl BTree {
 
     let top_write_lock_location = {
       let top_read_guard = read_guards.pop().unwrap();
-      top_read_guard.location().as_val()
+      top_read_guard.location().promote_to_val()
     };
 
     match top_write_lock_location {
       LockTarget::RootIdentifierTarget => {
         let root_identifier_guard = RootIdentifierWriteGuard::acquire(btree);
-        let root_guard = WriteGuard::acquire(btree, LockTargetRef::NodeTarget {
-            identifier: &root_identifier_guard
-          }
-        );
+        let root_guard = WriteGuard::acquire_node_write_guard(btree, &root_identifier_guard);
 
         write_guards.push(WriteGuard::RootIdentifierWriteGuard(root_identifier_guard));
         write_guards.push(root_guard);
       },
-      LockTarget::NodeTarget { identifier } => {
+      LockTarget::NodeTarget(identifier) => {
         let node_guard = NodeWriteGuard::acquire(btree, &identifier);
         if !node_guard.can_grow_without_split() {
           // We failed; this is no longer stable.
@@ -113,7 +109,7 @@ impl BTree {
           Node::LeafNode(_) => break,
           Node::InteriorNode(inode) => {
             let child_identifier = inode.child_identifier_by_key(key);
-            WriteGuard::acquire(btree, LockTargetRef::NodeTarget { identifier: child_identifier })
+            WriteGuard::acquire_node_write_guard(btree, child_identifier)
           }
         }
       };
@@ -153,9 +149,8 @@ impl BTree {
         WriteGuard::RootIdentifierWriteGuard(mut identifier_guard) => {
           ::util::log_method_entry("trying to split root");
 
-          let new_root_identifier = btree.store_new_interior_node(
-            vec![child_split_info.new_median],
-            vec![child_split_info.new_left_identifier, child_split_info.new_right_identifier],
+          let new_root_identifier = btree.store_new_root_node(
+            child_split_info
           );
 
           *identifier_guard = new_root_identifier;

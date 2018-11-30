@@ -3,6 +3,7 @@ use node::{
   InteriorNode,
   LeafNode,
   Node,
+  SplitInfo
 };
 use parking_lot::RwLock;
 use rand::{
@@ -37,24 +38,35 @@ impl BTree {
     identifier
   }
 
+  pub fn store_new_root_node(&self, split_info: SplitInfo) -> String {
+    // Choose an identifier.
+    let identifier = BTree::get_new_identifier();
+
+    // Create the node and put it into Arc.
+    let node = InteriorNode::new_root(identifier.clone(), split_info, self.max_key_capacity);
+    let node = Arc::new(RwLock::new(Node::InteriorNode(node)));
+
+    // Store the node.
+    self.store_node(identifier.clone(), node);
+
+    identifier
+  }
+
   pub fn store_new_interior_node(&self, splits: Vec<String>, child_identifiers: Vec<String>) -> String {
     let identifier = BTree::get_new_identifier();
-    let interior_node = InteriorNode {
-      identifier: identifier.clone(),
+
+    // Create the node and put it into Arc.
+    let node = InteriorNode::new(
+      identifier.clone(),
       splits,
       child_identifiers,
-      max_key_capacity: self.max_key_capacity,
-    };
+      self.max_key_capacity,
+    );
 
-    let node = Arc::new(RwLock::new(Node::InteriorNode(interior_node)));
+    let node = Arc::new(RwLock::new(Node::InteriorNode(node)));
 
-    {
-      ::util::log_node_map_locking("trying to acquire write lock of node map");
-      let mut identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.write();
-      ::util::log_node_map_locking("acquired write lock of node map");
-      identifier_to_nodes_map.insert(identifier.clone(), Arc::clone(&node));
-    }
-    ::util::log_node_map_locking("released write lock of node map");
+    // Store the node.
+    self.store_node(identifier.clone(), node);
 
     identifier
   }

@@ -24,7 +24,7 @@ impl RootIdentifierWriteGuard {
     let btree = Arc::clone(btree);
 
     RootIdentifierWriteGuard::new(btree, |btree| {
-      let guard = btree.root_identifier_lock.write();
+      let guard = btree.root_identifier_lock().write();
       ::util::log_root_locking("acquired write lock on root identifier");
       guard
     })

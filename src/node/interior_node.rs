@@ -18,6 +18,24 @@ pub struct InteriorNode {
 }
 
 impl InteriorNode {
+  pub fn new(identifier: String, splits: Vec<String>, child_identifiers: Vec<String>, max_key_capacity: usize) -> InteriorNode {
+    InteriorNode {
+      identifier,
+      splits,
+      child_identifiers,
+      max_key_capacity
+    }
+  }
+
+  pub fn new_root(identifier: String, split_info: SplitInfo, max_key_capacity: usize) -> InteriorNode {
+    InteriorNode {
+      identifier,
+      splits: vec![split_info.new_median],
+      child_identifiers: vec![split_info.new_left_identifier, split_info.new_right_identifier],
+      max_key_capacity
+    }
+  }
+
   pub fn child_identifier_by_key(&self, key: &str) -> &str {
     let idx = match search_sorted_strings_for_str(&self.splits, key) {
       Ok(idx) => idx,
