@@ -146,6 +146,13 @@ impl ReadGuard {
     }
   }
 
+  pub fn unwrap_root_read_guard_ref(&self, message: &'static str) -> &RootIdentifierReadGuard {
+    match self {
+      ReadGuard::NodeReadGuard(..) => panic!(message),
+      ReadGuard::RootIdentifierReadGuard(root_guard) => root_guard
+    }
+  }
+
   pub fn unwrap_node_read_guard_ref(&self, message: &'static str) -> &NodeReadGuard {
     match self {
       ReadGuard::RootIdentifierReadGuard(..) => panic!(message),

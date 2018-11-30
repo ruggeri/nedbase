@@ -2,8 +2,10 @@ use locking::{
   LockTarget,
   LockTargetRef,
   NodeReadGuard,
+  NodeWriteGuard,
   ReadGuard,
   RootIdentifierReadGuard,
+  RootIdentifierWriteGuard,
   WriteGuard,
 };
 use node::{
@@ -19,212 +21,124 @@ enum WriteLockAcquisitionResult {
 }
 
 type LockVerificationPath = Vec<LockTarget>;
+type ReadGuardPath = Vec<ReadGuard>;
+type WriteGuardPath = Vec<WriteGuard>;
+
+struct InsertionGuards {
+  read_guards: ReadGuardPath,
+  write_guards: WriteGuardPath,
+}
 
 impl BTree {
   // Finds highest lock target that may need to be mutated by an
   // insertion.
-  fn find_top_insert_lock_target(btree: &Arc<BTree>, key: &str) -> LockVerificationPath {
-    ::util::log_method_entry("find_top_insert_lock_target starting");
+  fn build_read_path_for_insert(btree: &Arc<BTree>, key: &str) -> ReadGuardPath {
+    ::util::log_method_entry("build_read_path_for_insert starting");
 
-    let mut current_path = vec![LockTarget::RootIdentifierTarget];
-    let mut target_lock_path = current_path.clone();
+    let mut current_path = ReadGuardPath::new();
+    {
+      let root_identifier_guard = RootIdentifierReadGuard::acquire(btree);
+      let root_node_guard = NodeReadGuard::acquire(btree, &root_identifier_guard);
 
-    let mut current_node_guard = {
-      let identifier_guard = RootIdentifierReadGuard::acquire(btree);
-      NodeReadGuard::acquire(btree, &(*identifier_guard))
-    };
-
-    loop {
-      let current_node_target = LockTarget::NodeTarget {
-        identifier: String::from(current_node_guard.identifier())
-      };
-
-      current_path.push(current_node_target);
-
-      if current_node_guard.can_grow_without_split() {
-        target_lock_path = current_path.clone();
-      }
-
-      current_node_guard = match &(*current_node_guard) {
-        Node::LeafNode(_) => break,
-        Node::InteriorNode(inode) => {
-          let child_identifier = inode.child_identifier_by_key(key);
-          NodeReadGuard::acquire(btree, child_identifier)
-        }
-      }
-    };
-
-    ::util::log_method_entry("find_top_insert_lock_target completed");
-    target_lock_path
-  }
-
-  // Verifies that the acquired write lock is still the top-most target
-  // that may be mutated by an insertion.
-  fn verify_top_insert_lock(btree: &Arc<BTree>, path_to_target_lock: &LockVerificationPath, top_insert_guard: &WriteGuard, key: &str) -> bool {
-    ::util::log_method_entry("verify_top_insert_lock started");
-    let top_insert_node = match top_insert_guard {
-      WriteGuard::RootIdentifierWriteGuard { .. } => {
-        ::util::log_method_entry("verify_top_insert_lock completed");
-        // Splitting all the way to the root is always a valid
-        // possibility.
-        return true;
-      }
-      WriteGuard::NodeWriteGuard(node_write_guard) => node_write_guard,
-    };
-
-    // The target node cannot grow without splitting, thus the parent
-    // may need to be mutated.
-    //
-    // In theory it is possible that the top-most write lock required
-    // now lives *below* this node, but that is unlikely.
-    if !top_insert_node.can_grow_without_split() {
-      ::util::log_method_entry("verify_top_insert_lock completed (cannot grow)");
-      return false;
-    }
-
-    let mut current_lock_guard = match ReadGuard::try_to_acquire(btree, LockTargetRef::RootIdentifierTarget) {
-      None => {
-        // We can be blocked from descending if an ancestor lock is:
-        //
-        // (1) Currently held for reading,
-        // (2) A write lock is queued up,
-        // (3) The first lock cannot be cleared because it wants to
-        //     descend reading to our top target node.
-        //
-        // Thus we will cancel our locking attempt if such a scenario
-        // appears to occur.
-        ::util::log_method_entry("verify_top_insert_lock completed (encountered lower lock)");
-        return false
-      }
-      Some(root_identifier_guard) => root_identifier_guard
-    };
-
-    for next_element_of_path in path_to_target_lock {
-      let next_lock_guard = {
-        let current_location = current_lock_guard.location();
-        match (current_location, next_element_of_path) {
-          (LockTargetRef::RootIdentifierTarget, LockTarget::NodeTarget { .. }) => {
-            ::util::log_method_entry("verify_top_insert_lock completed (failed; went off path)");
-            return false;
-          },
-          (LockTargetRef::NodeTarget { .. }, LockTarget::RootIdentifierTarget) => {
-            ::util::log_method_entry("verify_top_insert_lock completed (failed; went off path)");
-            return false;
-          }
-          (LockTargetRef::NodeTarget { identifier: current_identifier }, LockTarget::NodeTarget { identifier: expected_identifier }) => {
-            if current_identifier != expected_identifier {
-              ::util::log_method_entry("verify_top_insert_lock completed (failed; went off path)");
-              return false;
-            }
-          }
-          _ => {
-            // Everything else means we are matching!
-          }
-        }
-
-        let child_location = match &current_lock_guard {
-          ReadGuard::RootIdentifierReadGuard(current_root_guard) => {
-            LockTargetRef::NodeTarget { identifier: &(*current_root_guard) }
-          }
-          ReadGuard::NodeReadGuard(current_node_guard) => {
-            match &(**current_node_guard) {
-              Node::LeafNode(..) => {
-                panic!("Did not expect to hit leaf node along path");
-              }
-              Node::InteriorNode(inode) => {
-                LockTargetRef::NodeTarget {
-                  identifier: inode.child_identifier_by_key(key)
-                }
-              }
-            }
-          }
-        };
-
-        // Both locations on the path match. Good. Where should we descend next?
-        // Do we keep descending, or are we done?
-        let top_insert_guard_location = top_insert_guard.location();
-        if child_location == top_insert_guard_location {
-          // We got all the way to the target!
-          ::util::log_method_entry("verify_top_insert_lock completed (verification success)");
-          return true;
-        }
-
-        // Else we must keep descending.
-        let next_lock_guard = match ReadGuard::try_to_acquire(btree, child_location) {
-          None => {
-            // See above rationale.
-            ::util::log_method_entry("verify_top_insert_lock completed (encountered lower lock)");
-            return false
-          }
-          Some(child_guard) => child_guard
-        };
-
-        next_lock_guard
-      };
-
-      current_lock_guard = next_lock_guard;
-    }
-
-    panic!("How did we get here??");
-  }
-
-  fn acquire_write_lock_path_for_insert(btree: &Arc<BTree>, key: &str) -> WriteLockAcquisitionResult {
-    ::util::log_method_entry("acquire_write_lock_path_for_insert started");
-    let target_lock_path = BTree::find_top_insert_lock_target(btree, key);
-    let top_insert_target = target_lock_path.last().unwrap();
-    let top_insert_guard = WriteGuard::acquire(btree, top_insert_target.as_ref());
-
-    if !BTree::verify_top_insert_lock(btree, &target_lock_path, &top_insert_guard, key) {
-      ::util::log_method_entry("acquire_write_lock_path_for_insert (verification failed)");
-      return WriteLockAcquisitionResult::TopWriteLockVerificationFailed;
-    }
-
-    let mut write_guards = vec![top_insert_guard];
-    if let Some(root_node_guard) = match &write_guards[0] {
-      WriteGuard::RootIdentifierWriteGuard(identifier_guard) => {
-        let root_node_guard = WriteGuard::acquire(btree, LockTargetRef::NodeTarget { identifier: &(*identifier_guard) });
-        Some(root_node_guard)
-      }
-      WriteGuard::NodeWriteGuard(..) => None
-    } {
-      write_guards.push(root_node_guard);
+      current_path.push(ReadGuard::RootIdentifierReadGuard(root_identifier_guard));
+      current_path.push(ReadGuard::NodeReadGuard(root_node_guard));
     }
 
     loop {
-      let next_write_guard = {
-        let last_guard = write_guards.last().expect("write_guards should be non-empty");
-        let current_node_guard = last_guard
-          .unwrap_node_write_guard_ref("last write_guard should be a node guard");
-
-        let child_identifier = match &(**current_node_guard) {
+      let child_guard = {
+        let node_guard = current_path.last().unwrap().unwrap_node_read_guard_ref("expected node");
+        match &(**node_guard) {
           Node::LeafNode(_) => break,
-          Node::InteriorNode(inode) => inode.child_identifier_by_key(key),
-        };
-
-        // TODO: May be able to release prior locks if we hit a stable
-        // lock.
-        WriteGuard::acquire(btree, LockTargetRef::NodeTarget { identifier: child_identifier })
+          Node::InteriorNode(inode) => {
+            let child_identifier = inode.child_identifier_by_key(key);
+            ReadGuard::acquire(btree, LockTargetRef::NodeTarget { identifier: child_identifier})
+          }
+        }
       };
 
-      write_guards.push(next_write_guard);
+      current_path.push(child_guard);
+    };
+
+    while current_path.len() > 1 {
+      {
+        let read_guard = current_path.last().unwrap();
+        let read_guard = read_guard.unwrap_node_read_guard_ref("expected node");
+
+        if read_guard.can_grow_without_split() {
+          break;
+        }
+      }
+
+      current_path.pop();
     }
 
-    ::util::log_method_entry("acquire_write_lock_path_for_insert (success)");
-    WriteLockAcquisitionResult::Succeeded(write_guards)
+    current_path
+  }
+
+  fn finish_building_insertion_guards(btree: &Arc<BTree>, mut read_guards: ReadGuardPath, key: &str) -> Option<InsertionGuards> {
+    let mut write_guards = Vec::new();
+
+    let top_write_lock_location = {
+      let top_read_guard = read_guards.pop().unwrap();
+      top_read_guard.location().as_val()
+    };
+
+    match top_write_lock_location {
+      LockTarget::RootIdentifierTarget => {
+        let root_identifier_guard = RootIdentifierWriteGuard::acquire(btree);
+        let root_guard = WriteGuard::acquire(btree, LockTargetRef::NodeTarget {
+            identifier: &root_identifier_guard
+          }
+        );
+
+        write_guards.push(WriteGuard::RootIdentifierWriteGuard(root_identifier_guard));
+        write_guards.push(root_guard);
+      },
+      LockTarget::NodeTarget { identifier } => {
+        let node_guard = NodeWriteGuard::acquire(btree, &identifier);
+        if !node_guard.can_grow_without_split() {
+          // We failed; this is no longer stable.
+          return None;
+        }
+
+        write_guards.push(WriteGuard::NodeWriteGuard(node_guard));
+      }
+    }
+
+    // Descend acquiring write guards.
+    loop {
+      let child_guard = {
+        let node_guard = write_guards.last().unwrap().unwrap_node_write_guard_ref("expected node");
+        match &(**node_guard) {
+          Node::LeafNode(_) => break,
+          Node::InteriorNode(inode) => {
+            let child_identifier = inode.child_identifier_by_key(key);
+            WriteGuard::acquire(btree, LockTargetRef::NodeTarget { identifier: child_identifier })
+          }
+        }
+      };
+
+      write_guards.push(child_guard);
+    };
+
+    Some(InsertionGuards {
+      read_guards,
+      write_guards
+    })
   }
 
   pub fn insert(btree: &Arc<BTree>, key: String) {
-    ::util::log_method_entry("insert started");
-    let mut write_guards = loop {
-      match BTree::acquire_write_lock_path_for_insert(btree, &key) {
-        WriteLockAcquisitionResult::TopWriteLockVerificationFailed => continue,
-        WriteLockAcquisitionResult::Succeeded(write_guards) => break write_guards,
+    let mut insertion_guards = loop {
+      let read_guards = BTree::build_read_path_for_insert(btree, &key);
+      match BTree::finish_building_insertion_guards(btree, read_guards, &key) {
+        None => continue,
+        Some(insertion_guards) => break insertion_guards
       }
     };
 
     ::util::log_method_entry("beginning insertion process");
     let mut insertion_result = {
-      let last_write_guard = write_guards.pop().expect("should acquire at least one write guard");
+      let last_write_guard = insertion_guards.write_guards.pop().expect("should acquire at least one write guard");
       let mut current_node_guard = last_write_guard
         .unwrap_node_write_guard("last write_guard should be a node guard");
       current_node_guard
@@ -233,7 +147,7 @@ impl BTree {
     };
 
     while let InsertionResult::DidInsertWithSplit(child_split_info) = insertion_result {
-      let mut last_write_guard = write_guards.pop().expect("should not run out of write guards");
+      let mut last_write_guard = insertion_guards.write_guards.pop().expect("should not run out of write guards");
 
       match last_write_guard {
         WriteGuard::RootIdentifierWriteGuard(mut identifier_guard) => {

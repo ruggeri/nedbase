@@ -20,3 +20,14 @@ impl LockTarget {
     }
   }
 }
+
+impl<'a> LockTargetRef<'a> {
+  pub fn as_val(&self) -> LockTarget {
+    match self {
+      LockTargetRef::RootIdentifierTarget => LockTarget::RootIdentifierTarget,
+      LockTargetRef::NodeTarget { identifier } => LockTarget::NodeTarget {
+        identifier: String::from(*identifier)
+      }
+    }
+  }
+}
