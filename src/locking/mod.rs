@@ -1,7 +1,7 @@
-mod lock_target;
-mod read_guards;
-mod write_guards;
+mod target;
+mod reading;
+mod writing;
 
-pub use self::lock_target::{LockTarget, LockTargetRef};
-pub use self::read_guards::{NodeReadGuard, ReadGuard, RootIdentifierReadGuard};
-pub use self::write_guards::{NodeWriteGuard, RootIdentifierWriteGuard, WriteGuard};
+pub use self::target::{LockTarget, LockTargetRef};
+pub use self::reading::{NodeReadGuard, ReadGuard, RootIdentifierReadGuard};
+pub use self::writing::{NodeWriteGuard, RootIdentifierWriteGuard, WriteGuard};
