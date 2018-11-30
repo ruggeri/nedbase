@@ -25,7 +25,7 @@ impl LeafNode {
   }
 
   pub fn identifier(&self) -> &str {
-    self.identifier()
+    &self.identifier
   }
 
   pub fn insert(&mut self, btree: &BTree, key_to_insert: String) -> InsertionResult {

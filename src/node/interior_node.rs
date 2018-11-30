@@ -50,7 +50,7 @@ impl InteriorNode {
   }
 
   pub fn identifier(&self) -> &str {
-    self.identifier()
+    &self.identifier
   }
 
   pub fn handle_split(&mut self, btree: &BTree, child_split_info: SplitInfo) -> InsertionResult {
