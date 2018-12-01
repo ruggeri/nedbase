@@ -8,7 +8,7 @@ use locking::{
 use node::{InsertionResult, Node};
 use std::sync::Arc;
 
-pub fn pessimistic_insert(btree: &Arc<BTree>, key: String) {
+pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
   let mut write_guards = WriteGuardPath::new();
 
   // Acquire write lock on root identifier, and then on the root node.
@@ -37,7 +37,7 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, key: String) {
       match &(**node_write_guard) {
         Node::LeafNode(_) => break,
         Node::InteriorNode(inode) => {
-          let child_identifier = inode.child_identifier_by_key(&key);
+          let child_identifier = inode.child_identifier_by_key(insert_key);
           NodeWriteGuard::acquire(btree, child_identifier)
         }
       }
@@ -58,7 +58,7 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, key: String) {
     .pop("should have acquired at least one write guard for insertion")
     .unwrap_node_write_guard("should be inserting at a node")
     .unwrap_leaf_node_mut_ref("insertion should happen at leaf node")
-    .insert(btree, key);
+    .insert(btree, String::from(insert_key));
 
   // For as long as we are splitting, insert the split nodes into their
   // parent.
