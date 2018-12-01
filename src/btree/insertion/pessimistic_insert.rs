@@ -9,7 +9,7 @@ use node::{InsertionResult, Node};
 use std::sync::Arc;
 
 pub fn pessimistic_insert(btree: &Arc<BTree>, key: String) {
-  let mut guards = WriteGuardPath::new();
+  let mut write_guards = WriteGuardPath::new();
 
   // Acquire write lock on root identifier, and then on the root node.
   {
@@ -19,10 +19,10 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, key: String) {
     // If root node won't need to split, we can release the write
     // guard on the root identifier.
     if current_node_guard.can_grow_without_split() {
-      guards.push(WriteGuard::NodeWriteGuard(current_node_guard));
+      write_guards.push(WriteGuard::NodeWriteGuard(current_node_guard));
     } else {
-      guards.push(WriteGuard::RootIdentifierWriteGuard(identifier_guard));
-      guards.push(WriteGuard::NodeWriteGuard(current_node_guard));
+      write_guards.push(WriteGuard::RootIdentifierWriteGuard(identifier_guard));
+      write_guards.push(WriteGuard::NodeWriteGuard(current_node_guard));
     }
   }
 
@@ -30,7 +30,7 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, key: String) {
   // prior write locks if you hit a stable node.
   loop {
     let current_node_guard = {
-      let node_write_guard = guards
+      let node_write_guard = write_guards
         .peek_deepest_lock()
         .unwrap_node_write_guard_ref("final write guard in path should always be for a node");
 
@@ -46,28 +46,30 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, key: String) {
     // Whenever we encounter a stable node, we can clear all previously
     // acquired write locks.
     if current_node_guard.can_grow_without_split() {
-      guards.clear();
+      write_guards.clear();
     }
 
     // Regardless, hold this lock.
-    guards.push(WriteGuard::NodeWriteGuard(current_node_guard));
+    write_guards.push(WriteGuard::NodeWriteGuard(current_node_guard));
   };
 
   // Perform the insert at the leaf.
-  let mut insertion_result = guards
-    .peek_deepest_lock()
-    .unwrap_node_write_guard_ref("last write guard in path should be for a leaf node")
-    .unwrap_leaf_node_mut_ref("last write guard in path should be for a leaf node")
+  let mut insertion_result = write_guards
+    .pop("should have acquired at least one write guard for insertion")
+    .unwrap_node_write_guard("should be inserting at a node")
+    .unwrap_leaf_node_mut_ref("insertion should happen at leaf node")
     .insert(btree, key);
 
   // For as long as we are splitting, insert the split nodes into their
   // parent.
   while let InsertionResult::DidInsertWithSplit(child_split_info) = insertion_result {
-    let mut last_write_guard = guards
+    let mut last_write_guard = write_guards
       .pop("should not run out of write guards while bubbling splits");
 
     match last_write_guard {
       WriteGuard::RootIdentifierWriteGuard(mut root_identifier_guard) => {
+        // We have split all the way to the top!
+
         // First, create the new root node.
         let new_root_identifier = BTree::store_new_root_node(
           btree,
@@ -77,11 +79,10 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, key: String) {
         // Now update the BTree to use the new root node we created.
         *root_identifier_guard = new_root_identifier;
 
-        // Mission accomplished!
-        return
+        break
       },
 
-      WriteGuard::NodeWriteGuard(node_guard) => {
+      WriteGuard::NodeWriteGuard(mut node_guard) => {
         insertion_result = node_guard
           .unwrap_interior_node_mut_ref("parents of split nodes expected to be interior nodes")
           .handle_split(btree, child_split_info);

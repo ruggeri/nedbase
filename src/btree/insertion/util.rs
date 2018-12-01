@@ -1,4 +1,4 @@
-use locking::{LockTarget, ReadGuard, WriteGuard, WriteGuardPath};
+use locking::{LockTarget, ReadGuard, ReadGuardPath, WriteGuard, WriteGuardPath};
 
 enum WriteLockAcquisitionResult {
   TopWriteLockVerificationFailed,
@@ -6,7 +6,6 @@ enum WriteLockAcquisitionResult {
 }
 
 type LockVerificationPath = Vec<LockTarget>;
-pub type ReadGuardPath = Vec<ReadGuard>;
 
 struct InsertionGuards {
   read_guards: ReadGuardPath,
