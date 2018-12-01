@@ -29,7 +29,7 @@ impl ReadGuardPath {
     self.read_guards.last().expect("expected to hold at least one read guard")
   }
 
-  pub fn truncate(&self, new_len: usize) {
+  pub fn truncate(&mut self, new_len: usize) {
     self.read_guards.truncate(new_len);
   }
 
