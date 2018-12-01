@@ -3,18 +3,36 @@ use locking::WriteGuard;
 use node::InsertionResult;
 use std::sync::Arc;
 use super::acquire_parent_of_stable_node::acquire_parent_of_stable_node;
-use super::acquire_write_guard_path::acquire_write_guard_path;
+use super::acquire_write_guard_path::{
+  acquire_write_guard_path,
+  WriteGuardPathAcquisitionResult
+};
 
 pub fn optimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
   // Acquire a read lock on the parent of the lowest stable node. Then
   // lock that stable node for writing. And acquire the write path down
   // to the leaf.
-  let mut write_guard_path = {
+  let mut write_guard_path = loop {
     // Note: parent_of_stable_node might be None if we are splitting the
     // root.
     let parent_of_stable_node = acquire_parent_of_stable_node(btree, insert_key);
+
     // Note that this will release the read lock on the parent (if any).
-    acquire_write_guard_path(btree, parent_of_stable_node, insert_key)
+    let write_guard_acquisition_result = acquire_write_guard_path(btree, parent_of_stable_node, insert_key);
+
+    match write_guard_acquisition_result {
+      WriteGuardPathAcquisitionResult::TopNodeWentUnstable => {
+        // The deepest stable node may go unstable due to simultaneous
+        // insert, which means we must try everything again.
+        continue;
+      }
+
+      WriteGuardPathAcquisitionResult::Success(write_guard_path) => {
+        // Hopefully the deepest stable node stayed stable! Then we can
+        // continue.
+        break write_guard_path;
+      }
+    }
   };
 
   // Now we perform the insertion at the leaf node. This may trigger a

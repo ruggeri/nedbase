@@ -1,5 +1,6 @@
 use btree::BTree;
 use locking::{
+  NodeWriteGuard,
   ReadGuard,
   RootIdentifierWriteGuard,
   WriteGuard,
@@ -8,7 +9,12 @@ use locking::{
 use node::Node;
 use std::sync::Arc;
 
-pub fn acquire_write_guard_path(btree: &Arc<BTree>, parent_read_guard: Option<ReadGuard>, insert_key: &str) -> WriteGuardPath {
+pub enum WriteGuardPathAcquisitionResult {
+  Success(WriteGuardPath),
+  TopNodeWentUnstable,
+}
+
+pub fn acquire_write_guard_path(btree: &Arc<BTree>, parent_read_guard: Option<ReadGuard>, insert_key: &str) -> WriteGuardPathAcquisitionResult {
   let mut write_guards = WriteGuardPath::new();
 
   // Acquire top write guard.
@@ -39,12 +45,19 @@ pub fn acquire_write_guard_path(btree: &Arc<BTree>, parent_read_guard: Option<Re
           let interior_node = parent_node_read_guard
             .unwrap_interior_node_ref("a parent node must be an interior node");
           let child_identifier = interior_node.child_identifier_by_key(insert_key);
-          write_guards.push(WriteGuard::acquire_node_write_guard(btree, child_identifier));
+          let deepest_stable_parent = NodeWriteGuard::acquire(btree, child_identifier);
+
+          if !deepest_stable_parent.can_grow_without_split() {
+            // It is possible that because of insertions, this node is
+            // no longer stable! Then we must start all over again!
+            return WriteGuardPathAcquisitionResult::TopNodeWentUnstable;
+          }
+
+          write_guards.push(WriteGuard::NodeWriteGuard(deepest_stable_parent));
         }
       }
     }
   }
-
   // Descend acquiring write guards.
   loop {
     let child_guard = {
@@ -64,5 +77,5 @@ pub fn acquire_write_guard_path(btree: &Arc<BTree>, parent_read_guard: Option<Re
     write_guards.push(child_guard);
   }
 
-  write_guards
+  WriteGuardPathAcquisitionResult::Success(write_guards)
 }
