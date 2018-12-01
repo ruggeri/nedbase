@@ -36,28 +36,29 @@ pub fn acquire_write_guard_path(btree: &Arc<BTree>, parent_read_guard: Option<Re
       //
       // Note that we take ownership here, so that the read guard will
       // be dropped after the write guard is acquired.
-      match parent_read_guard {
+      let deepest_stable_parent = match parent_read_guard {
         ReadGuard::RootIdentifierReadGuard(root_identifier_read_guard) => {
-          write_guards.push(WriteGuard::acquire_node_write_guard(btree, &(*root_identifier_read_guard)));
+          NodeWriteGuard::acquire(btree, &(*root_identifier_read_guard))
         }
 
         ReadGuard::NodeReadGuard(parent_node_read_guard) => {
           let interior_node = parent_node_read_guard
             .unwrap_interior_node_ref("a parent node must be an interior node");
           let child_identifier = interior_node.child_identifier_by_key(insert_key);
-          let deepest_stable_parent = NodeWriteGuard::acquire(btree, child_identifier);
-
-          if !deepest_stable_parent.can_grow_without_split() {
-            // It is possible that because of insertions, this node is
-            // no longer stable! Then we must start all over again!
-            return WriteGuardPathAcquisitionResult::TopNodeWentUnstable;
-          }
-
-          write_guards.push(WriteGuard::NodeWriteGuard(deepest_stable_parent));
+          NodeWriteGuard::acquire(btree, child_identifier)
         }
+      };
+
+      if !deepest_stable_parent.can_grow_without_split() {
+        // It is possible that because of insertions, this node is
+        // no longer stable! Then we must start all over again!
+        return WriteGuardPathAcquisitionResult::TopNodeWentUnstable;
       }
+
+      write_guards.push(WriteGuard::NodeWriteGuard(deepest_stable_parent));
     }
   }
+
   // Descend acquiring write guards.
   loop {
     let child_guard = {
