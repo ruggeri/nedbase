@@ -75,6 +75,9 @@ pub fn acquire_write_guard_path(btree: &Arc<BTree>, parent_read_guard: Option<Re
       }
     };
 
+    // TODO:: If the node we just locked is stable we can release the
+    // prior locks. In that case we were just slightly overly
+    // pessimistic.
     write_guards.push(child_guard);
   }
 
