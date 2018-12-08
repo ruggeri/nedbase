@@ -44,7 +44,7 @@ impl InteriorNode {
 
     let mut left_splits = self.splits[0..new_median_idx].to_vec();
     let mut left_child_identifiers =
-      self.child_identifiers[0..(new_median_idx + 1)].to_vec();
+      self.child_identifiers[0..=new_median_idx].to_vec();
 
     let mut right_splits = self.splits[(new_median_idx + 1)..].to_vec();
     let mut right_child_identifiers =

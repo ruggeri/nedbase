@@ -15,7 +15,7 @@ impl BTree {
     let mut identifier_to_nodes_map =
       self.identifier_to_node_arc_lock_map.write();
     ::util::log_node_map_locking("acquired write lock of node map");
-    identifier_to_nodes_map.insert(String::from(identifier), node);
+    identifier_to_nodes_map.insert(identifier, node);
     ::util::log_node_map_locking("released write lock of node map");
   }
 
