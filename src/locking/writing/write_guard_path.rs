@@ -6,7 +6,9 @@ pub struct WriteGuardPath {
 
 impl WriteGuardPath {
   pub fn new() -> WriteGuardPath {
-    WriteGuardPath { write_guards: Vec::new() }
+    WriteGuardPath {
+      write_guards: Vec::new(),
+    }
   }
 
   pub fn pop(&mut self, msg: &'static str) -> WriteGuard {
@@ -18,7 +20,10 @@ impl WriteGuardPath {
   }
 
   pub fn peek_deepest_lock(&self) -> &WriteGuard {
-    self.write_guards.last().expect("expected to hold at least one write guard")
+    self
+      .write_guards
+      .last()
+      .expect("expected to hold at least one write guard")
   }
 
   pub fn clear(&mut self) {

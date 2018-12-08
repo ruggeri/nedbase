@@ -1,7 +1,4 @@
-use node::{
-  SplitInfo,
-  util::search_sorted_strings_for_str,
-};
+use node::{util::search_sorted_strings_for_str, SplitInfo};
 
 pub struct InteriorNode {
   pub(super) identifier: String,
@@ -16,21 +13,33 @@ pub struct InteriorNode {
 }
 
 impl InteriorNode {
-  pub fn new(identifier: String, splits: Vec<String>, child_identifiers: Vec<String>, max_key_capacity: usize) -> InteriorNode {
+  pub fn new(
+    identifier: String,
+    splits: Vec<String>,
+    child_identifiers: Vec<String>,
+    max_key_capacity: usize,
+  ) -> InteriorNode {
     InteriorNode {
       identifier,
       splits,
       child_identifiers,
-      max_key_capacity
+      max_key_capacity,
     }
   }
 
-  pub fn new_root(identifier: String, split_info: SplitInfo, max_key_capacity: usize) -> InteriorNode {
+  pub fn new_root(
+    identifier: String,
+    split_info: SplitInfo,
+    max_key_capacity: usize,
+  ) -> InteriorNode {
     InteriorNode {
       identifier,
       splits: vec![split_info.new_median],
-      child_identifiers: vec![split_info.new_left_identifier, split_info.new_right_identifier],
-      max_key_capacity
+      child_identifiers: vec![
+        split_info.new_left_identifier,
+        split_info.new_right_identifier,
+      ],
+      max_key_capacity,
     }
   }
 

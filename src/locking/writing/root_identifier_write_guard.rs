@@ -20,12 +20,16 @@ pub use self::rentals::RootIdentifierWriteGuard;
 
 impl RootIdentifierWriteGuard {
   pub fn acquire(btree: &Arc<BTree>) -> RootIdentifierWriteGuard {
-    ::util::log_root_locking("trying to acquire write lock on root identifier");
+    ::util::log_root_locking(
+      "trying to acquire write lock on root identifier",
+    );
     let btree = Arc::clone(btree);
 
     RootIdentifierWriteGuard::new(btree, |btree| {
       let guard = btree.root_identifier_lock().write();
-      ::util::log_root_locking("acquired write lock on root identifier");
+      ::util::log_root_locking(
+        "acquired write lock on root identifier",
+      );
       guard
     })
   }

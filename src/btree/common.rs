@@ -6,7 +6,8 @@ use std::sync::Arc;
 type IdentifierToNodeArcLockMap = HashMap<String, Arc<RwLock<Node>>>;
 pub struct BTree {
   pub(in btree) root_identifier_lock: RwLock<String>,
-  pub(in btree) identifier_to_node_arc_lock_map: RwLock<IdentifierToNodeArcLockMap>,
+  pub(in btree) identifier_to_node_arc_lock_map:
+    RwLock<IdentifierToNodeArcLockMap>,
   pub(in btree) max_key_capacity: usize,
 }
 
@@ -20,11 +21,16 @@ impl BTree {
     ));
 
     let mut identifier_to_node_arc_lock_map = HashMap::new();
-    identifier_to_node_arc_lock_map.insert(root_identifier.clone(), Arc::new(RwLock::new(root_node)));
+    identifier_to_node_arc_lock_map.insert(
+      root_identifier.clone(),
+      Arc::new(RwLock::new(root_node)),
+    );
 
     BTree {
       root_identifier_lock: RwLock::new(root_identifier.clone()),
-      identifier_to_node_arc_lock_map: RwLock::new(identifier_to_node_arc_lock_map),
+      identifier_to_node_arc_lock_map: RwLock::new(
+        identifier_to_node_arc_lock_map,
+      ),
       max_key_capacity,
     }
   }
@@ -33,10 +39,16 @@ impl BTree {
     &self.root_identifier_lock
   }
 
-  pub fn get_node_arc_lock(&self, identifier: &str) -> Arc<RwLock<Node>> {
+  pub fn get_node_arc_lock(
+    &self,
+    identifier: &str,
+  ) -> Arc<RwLock<Node>> {
     let node_lock = {
-      ::util::log_node_map_locking("trying to acquire read lock of node map");
-      let identifier_to_nodes_map = self.identifier_to_node_arc_lock_map.read();
+      ::util::log_node_map_locking(
+        "trying to acquire read lock of node map",
+      );
+      let identifier_to_nodes_map =
+        self.identifier_to_node_arc_lock_map.read();
       ::util::log_node_map_locking("acquired read lock of node map");
 
       let node_lock_option = identifier_to_nodes_map.get(identifier);

@@ -21,28 +21,42 @@ pub use self::rentals::RootIdentifierReadGuard;
 impl RootIdentifierReadGuard {
   pub fn acquire(btree: &Arc<BTree>) -> RootIdentifierReadGuard {
     RootIdentifierReadGuard::new(Arc::clone(btree), |btree| {
-      ::util::log_root_locking("trying to acquire read lock on root identifier");
+      ::util::log_root_locking(
+        "trying to acquire read lock on root identifier",
+      );
       let guard = btree.root_identifier_lock().read();
       ::util::log_root_locking("acquired read lock on root identifier");
       guard
     })
   }
 
-  pub fn try_timed_acquire(btree: &Arc<BTree>) -> Option<RootIdentifierReadGuard> {
-    ::util::log_root_locking("trying timed acquire of read lock on root identifier (timed)");
+  pub fn try_timed_acquire(
+    btree: &Arc<BTree>,
+  ) -> Option<RootIdentifierReadGuard> {
+    ::util::log_root_locking(
+      "trying timed acquire of read lock on root identifier (timed)",
+    );
 
     RootIdentifierReadGuard::try_new(Arc::clone(btree), |btree| {
-      match btree.root_identifier_lock().try_read_for(::std::time::Duration::from_millis(1)) {
+      match btree
+        .root_identifier_lock()
+        .try_read_for(::std::time::Duration::from_millis(1))
+      {
         None => {
-          ::util::log_root_locking("abandoned timed read lock acquisition on root identifier");
+          ::util::log_root_locking(
+            "abandoned timed read lock acquisition on root identifier",
+          );
           Err(())
-        },
+        }
         Some(identifier_guard) => {
-          ::util::log_root_locking("acquired read lock on root identifier");
+          ::util::log_root_locking(
+            "acquired read lock on root identifier",
+          );
           Ok(identifier_guard)
-        },
+        }
       }
-    }).ok()
+    })
+    .ok()
   }
 
   pub fn location(&self) -> LockTargetRef {

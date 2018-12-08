@@ -1,6 +1,4 @@
-use node::{
-  util::search_sorted_strings_for_str
-};
+use node::util::search_sorted_strings_for_str;
 
 pub struct LeafNode {
   pub(super) identifier: String,
@@ -9,8 +7,16 @@ pub struct LeafNode {
 }
 
 impl LeafNode {
-  pub fn new(identifier: String, keys: Vec<String>, max_key_capacity: usize) -> LeafNode {
-    LeafNode { identifier, keys, max_key_capacity }
+  pub fn new(
+    identifier: String,
+    keys: Vec<String>,
+    max_key_capacity: usize,
+  ) -> LeafNode {
+    LeafNode {
+      identifier,
+      keys,
+      max_key_capacity,
+    }
   }
 
   pub fn contains_key(&self, key: &str) -> bool {

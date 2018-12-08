@@ -6,7 +6,9 @@ pub struct ReadGuardPath {
 
 impl ReadGuardPath {
   pub fn new() -> ReadGuardPath {
-    ReadGuardPath { read_guards: Vec::new() }
+    ReadGuardPath {
+      read_guards: Vec::new(),
+    }
   }
 
   pub fn len(&self) -> usize {
@@ -22,11 +24,18 @@ impl ReadGuardPath {
   }
 
   pub fn peek_head_lock(&self) -> &ReadGuard {
-    self.read_guards.get(0).as_ref().expect("expected to hold at least one read guard")
+    self
+      .read_guards
+      .get(0)
+      .as_ref()
+      .expect("expected to hold at least one read guard")
   }
 
   pub fn peek_deepest_lock(&self) -> &ReadGuard {
-    self.read_guards.last().expect("expected to hold at least one read guard")
+    self
+      .read_guards
+      .last()
+      .expect("expected to hold at least one read guard")
   }
 
   pub fn truncate(&mut self, new_len: usize) {

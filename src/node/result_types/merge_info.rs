@@ -1,3 +1,2 @@
 // TODO: Implement me!
-pub struct MergeInfo {
-}
+pub struct MergeInfo {}

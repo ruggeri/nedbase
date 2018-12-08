@@ -9,17 +9,19 @@ pub enum LockTarget {
 impl LockTarget {
   pub fn as_ref(&self) -> LockTargetRef {
     match self {
-      LockTarget::RootIdentifierTarget => LockTargetRef::RootIdentifierTarget,
-      LockTarget::NodeTarget(identifier) => LockTargetRef::NodeTarget(
-        &identifier
-      )
+      LockTarget::RootIdentifierTarget => {
+        LockTargetRef::RootIdentifierTarget
+      }
+      LockTarget::NodeTarget(identifier) => {
+        LockTargetRef::NodeTarget(&identifier)
+      }
     }
   }
 
   pub fn unwrap_identifier(&self, message: &'static str) -> &str {
     match self {
       LockTarget::RootIdentifierTarget => panic!(message),
-      LockTarget::NodeTarget(identifier) => identifier
+      LockTarget::NodeTarget(identifier) => identifier,
     }
   }
 }

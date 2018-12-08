@@ -21,7 +21,7 @@ impl Drop for PanicChecker {
 }
 
 fn perform_insertions(btree: &Arc<BTree>) {
-  let panic_checker = PanicChecker {} ;
+  let panic_checker = PanicChecker {};
 
   let mut insertions = vec![];
   for _ in 0..NUM_INSERTIONS_PER_THREAD {
