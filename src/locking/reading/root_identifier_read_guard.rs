@@ -49,11 +49,3 @@ impl RootIdentifierReadGuard {
     LockTargetRef::RootIdentifierTarget
   }
 }
-
-// TODO: I can't implement this drop logic it seems? Rental complains?
-
-// impl Drop for RootIdentifierReadGuard {
-//   fn drop(&mut self) {
-//     ::util::thread_log("released read lock on root identifier");
-//   }
-// }

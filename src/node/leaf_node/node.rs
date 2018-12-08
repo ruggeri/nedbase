@@ -24,4 +24,8 @@ impl LeafNode {
   pub fn identifier(&self) -> &str {
     &self.identifier
   }
+
+  pub fn can_delete_without_merge(&self) -> bool {
+    self.max_key_capacity / 2 < self.keys.len()
+  }
 }

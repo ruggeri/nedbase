@@ -30,37 +30,7 @@ impl RootIdentifierWriteGuard {
     })
   }
 
-  // pub fn acquire_if_no_current_writers(btree: &'a BTree) -> Option<RootIdentifierWriteGuard<'a>> {
-  //   ::util::thread_log("trying to acquire read lock for upgrade on root identifier");
-  //   let identifier = match btree.root_identifier_lock.try_upgradable_read() {
-  //     None => {
-  //       ::util::thread_log("could not acquire read lock for upgrade on root identifier");
-  //       return None;
-  //     },
-  //     Some(upgradable_read_guard) => {
-  //       ::util::thread_log("acquired read lock for upgrade on root identifier");
-  //       ::util::thread_log("trying to upgrade read lock on root identifier");
-  //       RwLockUpgradableReadGuard::upgrade(upgradable_read_guard)
-  //     }
-  //   };
-  //   ::util::thread_log("acquired write lock on root identifier");
-
-  //   Some(RootIdentifierWriteGuard {
-  //     identifier
-  //   })
-  // }
-
   pub fn location(&self) -> LockTargetRef {
     LockTargetRef::RootIdentifierTarget
   }
 }
-
-// TODO: I can't implement this drop logic it seems? Rental complains?
-
-// impl Drop for RootIdentifierWriteGuard {
-//   fn drop(&mut self) {
-//     // I've put this here to prohibit anyone from moving the write guard
-//     // out. That seems dangerous (is it though?).
-//     ::util::thread_log("released write lock on root identifier");
-//   }
-// }

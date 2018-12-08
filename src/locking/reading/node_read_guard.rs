@@ -53,13 +53,3 @@ impl NodeReadGuard {
     LockTargetRef::NodeTarget(self.identifier())
   }
 }
-
-// TODO: I can't implement this drop logic it seems? Rental complains?
-
-// impl Drop for NodeReadGuard {
-//   fn drop(&mut self) {
-//     // I've put this here to prohibit anyone from moving the read guard
-//     // out. That seems dangerous (is it though?).
-//     ::util::thread_log(&format!("released read lock on node {}", self.identifier()));
-//   }
-// }
