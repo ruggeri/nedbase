@@ -6,7 +6,7 @@ use std::thread;
 
 const MAX_KEYS_PER_NODE: usize = 1024;
 const NUM_INSERTIONS_PER_THREAD: u32 = 100_000;
-const NUM_THREADS: u32 = 256;
+const NUM_THREADS: u32 = 32;
 
 struct PanicChecker {}
 
