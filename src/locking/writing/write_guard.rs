@@ -50,7 +50,7 @@ impl WriteGuard {
   pub fn unwrap_root_identifier_write_guard_ref(&self, message: &'static str) -> &RootIdentifierWriteGuard {
     match self {
       WriteGuard::RootIdentifierWriteGuard(root_identifier_guard) => root_identifier_guard,
-      WriteGuard::NodeWriteGuard(node_write_guard) => panic!(message),
+      WriteGuard::NodeWriteGuard(..) => panic!(message),
     }
   }
 
@@ -64,7 +64,7 @@ impl WriteGuard {
   pub fn unwrap_root_identifier_write_guard(self, message: &'static str) -> RootIdentifierWriteGuard {
     match self {
       WriteGuard::RootIdentifierWriteGuard(root_identifier_guard) => root_identifier_guard,
-      WriteGuard::NodeWriteGuard(node_write_guard) => panic!(message),
+      WriteGuard::NodeWriteGuard(..) => panic!(message),
     }
   }
 
