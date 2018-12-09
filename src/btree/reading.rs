@@ -30,9 +30,8 @@ impl BTree {
   }
 
   pub fn contains_key(btree: &Arc<BTree>, key: &str) -> bool {
-    match &(*(BTree::find_leaf_for_key(btree, key))) {
-      Node::LeafNode(ln) => ln.contains_key(key),
-      Node::InteriorNode(..) => panic!("Unexpected interior node!"),
-    }
+    BTree::find_leaf_for_key(btree, key)
+      .unwrap_leaf_node("find_leaf_for_key must return leaf node")
+      .contains_key(key)
   }
 }
