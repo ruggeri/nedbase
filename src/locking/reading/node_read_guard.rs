@@ -36,38 +36,6 @@ impl NodeReadGuard {
     })
   }
 
-  pub fn try_timed_acquire(
-    btree: &BTree,
-    identifier: &str,
-  ) -> Option<NodeReadGuard> {
-    ::util::log_node_locking(&format!(
-      "trying timed acquire of read lock on node {}",
-      identifier
-    ));
-    let lock = btree.get_node_arc_lock(&identifier);
-
-    NodeReadGuard::try_new(lock, |lock| {
-      match lock.try_read_for(::std::time::Duration::from_millis(1)) {
-        None => {
-          ::util::log_node_locking(&format!(
-            "abandoned timed read lock acquisition on node {}",
-            identifier
-          ));
-          Err(())
-        }
-
-        Some(node_guard) => {
-          ::util::log_node_locking(&format!(
-            "acquired read lock on node {}",
-            identifier
-          ));
-          Ok(node_guard)
-        }
-      }
-    })
-    .ok()
-  }
-
   pub fn location(&self) -> LockTargetRef {
     LockTargetRef::NodeTarget(self.identifier())
   }

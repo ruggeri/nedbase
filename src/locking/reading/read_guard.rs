@@ -38,23 +38,6 @@ impl ReadGuard {
     }
   }
 
-  pub fn try_timed_acquire(
-    btree: &Arc<BTree>,
-    target: LockTargetRef,
-  ) -> Option<ReadGuard> {
-    match target {
-      LockTargetRef::RootIdentifierTarget => {
-        RootIdentifierReadGuard::try_timed_acquire(btree)
-          .map(ReadGuard::RootIdentifierReadGuard)
-      }
-
-      LockTargetRef::NodeTarget(identifier) => {
-        NodeReadGuard::try_timed_acquire(btree, identifier)
-          .map(ReadGuard::NodeReadGuard)
-      }
-    }
-  }
-
   pub fn location(&self) -> LockTargetRef {
     match self {
       ReadGuard::RootIdentifierReadGuard(guard) => guard.location(),
