@@ -21,7 +21,12 @@ impl LeafNode {
   }
 
   pub fn can_delete_without_becoming_deficient(&self) -> bool {
-    Node::is_deficient_size(self.keys.len() - 1, self.max_key_capacity)
+    if self.keys.is_empty() {
+      // Special case because else subtraction by one is dangerous!
+      return false
+    }
+
+    !Node::is_deficient_size(self.keys.len() - 1, self.max_key_capacity)
   }
 
   pub fn can_grow_without_split(&self) -> bool {
