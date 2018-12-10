@@ -18,27 +18,18 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
       break;
     }
 
-    match deletion_path.pop_last_path_entry() {
-      DeletionPathEntry::UnstableRootNode { root_identifier } => {
-        handle_unstable_root_node(&mut write_set, root_identifier);
-        return;
-      }
+    let (underflow_action, path_node_identifier) =
+      match deletion_path.pop_last_path_entry() {
+        DeletionPathEntry::TopStableNode { .. } => {
+          panic!("TopStableNode is not supposed to go unstable!")
+        }
 
-      DeletionPathEntry::TopStableNode { .. } => {
-        panic!("TopStableNode is not supposed to go unstable!")
-      }
+        DeletionPathEntry::UnstableNode {
+          underflow_action,
+          path_node_identifier,
+        } => (underflow_action, path_node_identifier),
+      };
 
-      DeletionPathEntry::NodeWithMergeSibbling { .. } => {
-        unimplemented!();
-      }
-    }
+    unimplemented!();
   }
-}
-
-fn handle_unstable_root_node(
-  write_set: &mut WriteSet,
-  root_identifer: String,
-) {
-  let root_identifier_guard = write_set.get_root_identifier_guard_mut();
-  unimplemented!();
 }

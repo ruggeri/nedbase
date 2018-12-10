@@ -1,6 +1,6 @@
 use super::{
   acquire_parent_of_stable_node, DeletionPath, DeletionPathEntry,
-  WriteSet,
+  UnderflowAction, WriteSet,
 };
 use btree::BTree;
 use locking::ReadGuard;
@@ -152,10 +152,13 @@ fn extend_deletion_path(
     acquire_sibbling_node(btree, write_set, sibbling_node_identifiers);
 
   // Last: push entry onto the deletion path.
-  let path_entry = DeletionPathEntry::NodeWithMergeSibbling {
-    parent_node_identifier,
+  let path_entry = DeletionPathEntry::UnstableNode {
+    underflow_action: UnderflowAction::MergeWithSibbling {
+      parent_node_identifier,
+      sibbling_node_identifier: merge_sibbling_identifier,
+    },
+
     path_node_identifier: child_node_identifier,
-    sibbling_node_identifier: merge_sibbling_identifier,
   };
   path.push(path_entry);
 }

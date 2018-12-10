@@ -3,25 +3,22 @@ use btree::BTree;
 use locking::NodeWriteGuard;
 use std::sync::Arc;
 
-// pub struct NodeMergeInfo {
-//   parent_node_identifier: String,
-//   path_node_idx: usize,
-//   sibbling_node_idx: usize,
-// }
+pub enum UnderflowAction {
+  UpdateRootIdentifier,
+  MergeWithSibbling {
+    parent_node_identifier: String,
+    sibbling_node_identifier: String,
+  },
+}
 
 pub enum DeletionPathEntry {
-  UnstableRootNode {
-    root_identifier: String,
-  },
-
   TopStableNode {
     node_identifier: String,
   },
 
-  NodeWithMergeSibbling {
-    parent_node_identifier: String,
+  UnstableNode {
+    underflow_action: UnderflowAction,
     path_node_identifier: String,
-    sibbling_node_identifier: String,
   },
 }
 
@@ -42,8 +39,9 @@ impl DeletionPath {
     write_set.acquire_node_guard(btree, &root_identifier);
 
     DeletionPath {
-      entries: vec![DeletionPathEntry::UnstableRootNode {
-        root_identifier: root_identifier,
+      entries: vec![DeletionPathEntry::UnstableNode {
+        underflow_action: UnderflowAction::UpdateRootIdentifier,
+        path_node_identifier: root_identifier,
       }],
     }
   }
@@ -67,13 +65,11 @@ impl DeletionPath {
   pub fn last_identifier_of_path(&self) -> &str {
     let last_entry = self.last_path_entry();
     match last_entry {
-      DeletionPathEntry::UnstableRootNode { root_identifier } => {
-        &root_identifier
-      }
       DeletionPathEntry::TopStableNode { node_identifier } => {
         &node_identifier
       }
-      DeletionPathEntry::NodeWithMergeSibbling {
+
+      DeletionPathEntry::UnstableNode {
         path_node_identifier,
         ..
       } => &path_node_identifier,
@@ -114,8 +110,7 @@ impl DeletionPath {
       .expect("path was empty: cannot pop last entry")
   }
 
-  // Pushes on a new entry. Intended to always be a
-  // NodeWithMergeSibbling, but this is not enforced here...
+  // Pushes on a new entry.
   pub fn push(&mut self, path_entry: DeletionPathEntry) {
     self.entries.push(path_entry);
   }
