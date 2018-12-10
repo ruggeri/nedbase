@@ -1,5 +1,5 @@
 use btree::BTree;
-use locking::LockTargetRef;
+use locking::{LockTargetRef, ReadGuard};
 use std::sync::Arc;
 
 rental! {
@@ -21,16 +21,15 @@ pub use self::rentals::RootIdentifierReadGuard;
 impl RootIdentifierReadGuard {
   pub fn acquire(btree: &Arc<BTree>) -> RootIdentifierReadGuard {
     RootIdentifierReadGuard::new(Arc::clone(btree), |btree| {
-      ::util::log_root_locking(
-        "trying to acquire read lock on root identifier",
-      );
-      let guard = btree.root_identifier_lock().read();
-      ::util::log_root_locking("acquired read lock on root identifier");
-      guard
+      btree.root_identifier_lock().read()
     })
   }
 
   pub fn location(&self) -> LockTargetRef {
     LockTargetRef::RootIdentifierTarget
+  }
+
+  pub fn upcast(self) -> ReadGuard {
+    ReadGuard::RootIdentifierReadGuard(self)
   }
 }

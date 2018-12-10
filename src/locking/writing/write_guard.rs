@@ -10,6 +10,20 @@ pub enum WriteGuard {
 }
 
 impl WriteGuard {
+  pub fn acquire(
+    btree: &Arc<BTree>,
+    target: LockTargetRef,
+  ) -> WriteGuard {
+    match target {
+      LockTargetRef::RootIdentifierTarget => {
+        Self::acquire_root_identifier_write_guard(btree)
+      }
+      LockTargetRef::NodeTarget(identifier) => {
+        Self::acquire_node_write_guard(btree, identifier)
+      }
+    }
+  }
+
   pub fn acquire_node_write_guard(
     btree: &Arc<BTree>,
     identifier: &str,
@@ -27,39 +41,10 @@ impl WriteGuard {
     )
   }
 
-  pub fn acquire(
-    btree: &Arc<BTree>,
-    target: LockTargetRef,
-  ) -> WriteGuard {
-    match target {
-      LockTargetRef::RootIdentifierTarget => {
-        Self::acquire_root_identifier_write_guard(btree)
-      }
-      LockTargetRef::NodeTarget(identifier) => {
-        Self::acquire_node_write_guard(btree, identifier)
-      }
-    }
-  }
-
-  pub fn unwrap_node_write_guard_ref(
-    &self,
-    message: &'static str,
-  ) -> &NodeWriteGuard {
+  pub fn location(&self) -> LockTargetRef {
     match self {
-      WriteGuard::RootIdentifierWriteGuard(..) => panic!(message),
-      WriteGuard::NodeWriteGuard(node_write_guard) => node_write_guard,
-    }
-  }
-
-  pub fn unwrap_root_identifier_write_guard_ref(
-    &self,
-    message: &'static str,
-  ) -> &RootIdentifierWriteGuard {
-    match self {
-      WriteGuard::RootIdentifierWriteGuard(root_identifier_guard) => {
-        root_identifier_guard
-      }
-      WriteGuard::NodeWriteGuard(..) => panic!(message),
+      WriteGuard::RootIdentifierWriteGuard(guard) => guard.location(),
+      WriteGuard::NodeWriteGuard(guard) => guard.location(),
     }
   }
 
@@ -67,6 +52,16 @@ impl WriteGuard {
     self,
     message: &'static str,
   ) -> NodeWriteGuard {
+    match self {
+      WriteGuard::RootIdentifierWriteGuard(..) => panic!(message),
+      WriteGuard::NodeWriteGuard(node_write_guard) => node_write_guard,
+    }
+  }
+
+  pub fn unwrap_node_write_guard_ref(
+    &self,
+    message: &'static str,
+  ) -> &NodeWriteGuard {
     match self {
       WriteGuard::RootIdentifierWriteGuard(..) => panic!(message),
       WriteGuard::NodeWriteGuard(node_write_guard) => node_write_guard,
@@ -85,10 +80,15 @@ impl WriteGuard {
     }
   }
 
-  pub fn location(&self) -> LockTargetRef {
+  pub fn unwrap_root_identifier_write_guard_ref(
+    &self,
+    message: &'static str,
+  ) -> &RootIdentifierWriteGuard {
     match self {
-      WriteGuard::RootIdentifierWriteGuard(guard) => guard.location(),
-      WriteGuard::NodeWriteGuard(guard) => guard.location(),
+      WriteGuard::RootIdentifierWriteGuard(root_identifier_guard) => {
+        root_identifier_guard
+      }
+      WriteGuard::NodeWriteGuard(..) => panic!(message),
     }
   }
 }

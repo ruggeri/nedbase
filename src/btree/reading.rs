@@ -1,6 +1,5 @@
 use btree::BTree;
 use locking::{NodeReadGuard, RootIdentifierReadGuard};
-use node::Node;
 use std::sync::Arc;
 
 impl BTree {
@@ -8,24 +7,24 @@ impl BTree {
     btree: &Arc<BTree>,
     key: &str,
   ) -> NodeReadGuard {
-    ::util::log_method_entry("find_leaf_for_key starting");
     let mut current_node_guard = {
       let identifier_guard = RootIdentifierReadGuard::acquire(btree);
       NodeReadGuard::acquire(btree, &(*identifier_guard))
     };
 
     loop {
-      current_node_guard = match &(*current_node_guard) {
-        Node::LeafNode(_) => break,
-        Node::InteriorNode(interior_node) => {
-          let child_identifier =
-            interior_node.child_identifier_by_key(key);
-          NodeReadGuard::acquire(btree, child_identifier)
-        }
+      if current_node_guard.is_leaf_node() {
+        break
       }
+
+      current_node_guard = {
+        let child_identifier = current_node_guard
+          .unwrap_interior_node_ref("must not try to descend through leaf node")
+          .child_identifier_by_key(key);
+        NodeReadGuard::acquire(btree, child_identifier)
+      };
     }
 
-    ::util::log_method_entry("find_leaf_for_key completed");
     current_node_guard
   }
 

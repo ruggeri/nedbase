@@ -17,11 +17,10 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
     // If root node won't need to split, we can release the write
     // guard on the root identifier.
     if current_node_guard.can_grow_without_split() {
-      write_guards.push(WriteGuard::NodeWriteGuard(current_node_guard));
+      write_guards.push(current_node_guard.upcast());
     } else {
-      write_guards
-        .push(WriteGuard::RootIdentifierWriteGuard(identifier_guard));
-      write_guards.push(WriteGuard::NodeWriteGuard(current_node_guard));
+      write_guards.push(identifier_guard.upcast());
+      write_guards.push(current_node_guard.upcast());
     }
   }
 
@@ -29,20 +28,19 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
   // prior write locks if you hit a stable node.
   loop {
     let current_node_guard = {
-      let node_write_guard = write_guards
+      let prev_node_write_guard = write_guards
         .peek_deepest_lock()
         .unwrap_node_write_guard_ref(
           "final write guard in path should always be for a node",
         );
 
-      match &(**node_write_guard) {
-        Node::LeafNode(_) => break,
-        Node::InteriorNode(inode) => {
-          let child_identifier =
-            inode.child_identifier_by_key(insert_key);
-          NodeWriteGuard::acquire(btree, child_identifier)
-        }
+      if prev_node_write_guard.is_leaf_node() {
+        break;
       }
+
+      prev_node_write_guard
+        .unwrap_interior_node_ref("must not descend through interior node")
+        .acquire_write_guard_for_child_by_key(btree, insert_key)
     };
 
     // Whenever we encounter a stable node, we can clear all previously
@@ -52,7 +50,7 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
     }
 
     // Regardless, hold this lock.
-    write_guards.push(WriteGuard::NodeWriteGuard(current_node_guard));
+    write_guards.push(current_node_guard.upcast());
   }
 
   // Perform the insert at the leaf.

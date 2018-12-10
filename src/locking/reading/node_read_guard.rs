@@ -1,5 +1,5 @@
 use btree::BTree;
-use locking::LockTargetRef;
+use locking::{LockTargetRef, ReadGuard};
 use node::{InteriorNode, LeafNode, Node};
 
 rental! {
@@ -20,25 +20,10 @@ pub use self::rentals::NodeReadGuard;
 
 impl NodeReadGuard {
   pub fn acquire(btree: &BTree, identifier: &str) -> NodeReadGuard {
-    ::util::log_node_locking(&format!(
-      "trying to acquire read lock on node {}",
-      identifier
-    ));
     let lock = btree.get_node_arc_lock(&identifier);
-
     NodeReadGuard::new(lock, |lock| {
-      let guard = lock.read();
-      ::util::log_node_locking(&format!(
-        "acquired read lock on node {}",
-        identifier
-      ));
-
-      guard
+      lock.read()
     })
-  }
-
-  pub fn location(&self) -> LockTargetRef {
-    LockTargetRef::NodeTarget(self.identifier())
   }
 
   pub fn is_interior_node(&self) -> bool {
@@ -47,6 +32,10 @@ impl NodeReadGuard {
 
   pub fn is_leaf_node(&self) -> bool {
     self.node().is_leaf_node()
+  }
+
+  pub fn location(&self) -> LockTargetRef {
+    LockTargetRef::NodeTarget(self.identifier())
   }
 
   pub fn node(&self) -> &Node {
@@ -59,5 +48,9 @@ impl NodeReadGuard {
 
   pub fn unwrap_leaf_node_ref(&self, message: &'static str) -> &LeafNode {
     self.node().unwrap_leaf_node_ref(message)
+  }
+
+  pub fn upcast(self) -> ReadGuard {
+    ReadGuard::NodeReadGuard(self)
   }
 }

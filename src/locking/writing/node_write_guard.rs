@@ -1,5 +1,6 @@
 use btree::BTree;
-use locking::LockTargetRef;
+use locking::{LockTargetRef, WriteGuard};
+use node::{InteriorNode, Node};
 
 rental! {
   mod rentals {
@@ -19,23 +20,36 @@ pub use self::rentals::NodeWriteGuard;
 
 impl NodeWriteGuard {
   pub fn acquire(btree: &BTree, identifier: &str) -> NodeWriteGuard {
-    ::util::log_node_locking(&format!(
-      "trying to acquire write lock on node {}",
-      identifier
-    ));
     let lock = btree.get_node_arc_lock(&identifier);
 
     NodeWriteGuard::new(lock, |lock| {
-      let guard = lock.write();
-      ::util::log_node_locking(&format!(
-        "acquired write lock on node {}",
-        identifier
-      ));
-      guard
+      lock.write()
     })
+  }
+
+  pub fn acquire_child_for_key(btree: &BTree, node: &InteriorNode, key: &str) -> NodeWriteGuard {
+    let child_identifier = node.child_identifier_by_key(key);
+    NodeWriteGuard::acquire(btree, child_identifier)
   }
 
   pub fn location(&self) -> LockTargetRef {
     LockTargetRef::NodeTarget(self.identifier())
+  }
+
+  pub fn node(&self) -> &Node {
+    &(*self)
+  }
+
+  pub fn upcast(self) -> WriteGuard {
+    WriteGuard::NodeWriteGuard(self)
+  }
+}
+
+// This method is sort-of monkey-patched here because it's really about
+// NodeWriteGuard much more than InteriorNode.
+impl InteriorNode {
+  pub fn acquire_write_guard_for_child_by_key(&self, btree: &BTree, key: &str) -> NodeWriteGuard {
+    let child_identifier = self.child_identifier_by_key(key);
+    NodeWriteGuard::acquire(btree, child_identifier)
   }
 }

@@ -4,6 +4,7 @@ pub struct ReadGuardPath {
   read_guards: Vec<ReadGuard>,
 }
 
+#[allow(len_without_is_empty, new_without_default, new_without_default_derive)]
 impl ReadGuardPath {
   pub fn new() -> ReadGuardPath {
     ReadGuardPath {
@@ -11,16 +12,19 @@ impl ReadGuardPath {
     }
   }
 
+  pub fn clear(&mut self) {
+    self.read_guards.clear();
+  }
+
   pub fn len(&self) -> usize {
     self.read_guards.len()
   }
 
-  pub fn pop(&mut self, msg: &'static str) -> ReadGuard {
-    self.read_guards.pop().expect(msg)
-  }
-
-  pub fn push(&mut self, guard: ReadGuard) {
-    self.read_guards.push(guard);
+  pub fn peek_deepest_lock(&self) -> &ReadGuard {
+    self
+      .read_guards
+      .last()
+      .expect("expected to hold at least one read guard")
   }
 
   pub fn peek_head_lock(&self) -> &ReadGuard {
@@ -31,18 +35,15 @@ impl ReadGuardPath {
       .expect("expected to hold at least one read guard")
   }
 
-  pub fn peek_deepest_lock(&self) -> &ReadGuard {
-    self
-      .read_guards
-      .last()
-      .expect("expected to hold at least one read guard")
+  pub fn pop(&mut self, msg: &'static str) -> ReadGuard {
+    self.read_guards.pop().expect(msg)
+  }
+
+  pub fn push(&mut self, guard: ReadGuard) {
+    self.read_guards.push(guard);
   }
 
   pub fn truncate(&mut self, new_len: usize) {
     self.read_guards.truncate(new_len);
-  }
-
-  pub fn clear(&mut self) {
-    self.read_guards.clear();
   }
 }

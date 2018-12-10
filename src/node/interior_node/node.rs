@@ -27,6 +27,7 @@ impl InteriorNode {
     }
   }
 
+  // TODO: This method feels a little odd.
   pub fn new_root(
     identifier: String,
     split_info: SplitInfo,
