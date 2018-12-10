@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 type SibblingIdentifierPair = (Option<String>, Option<String>);
 
-pub enum WriteSetAcquistionResult {
+pub enum WriteSetAcquisitionResult {
   Success(WriteSet),
   TopNodeWentUnstable,
 }
@@ -46,6 +46,10 @@ impl WriteSet {
 
     self.map.insert(String::from(""), root_identifier_guard.upcast());
     self.map.insert(root_identifier.clone(), unstable_root_node_guard.upcast());
+
+    self.path.push(DeletionPathEntry::UnstableRootNode {
+      root_identifier: root_identifier
+    });
   }
 
   // When there is a top stable node, we acquire a write lock on it.
@@ -106,9 +110,49 @@ impl WriteSet {
       .expect("locks on path must be present")
       .unwrap_node_write_guard_ref("locks on path are for nodes")
   }
+
+  pub fn current_node_mut(&mut self) -> &mut NodeWriteGuard {
+    let last_entry = self.path.last().expect("path can never be empty");
+    let identifier = match last_entry {
+      DeletionPathEntry::UnstableRootNode{ root_identifier } => root_identifier,
+      DeletionPathEntry::TopStableNode{ node_identifier } => node_identifier,
+      DeletionPathEntry::NodeWithMergeSibbling{ path_node_identifier, .. } => path_node_identifier,
+    };
+
+    self.map.get_mut(identifier)
+      .expect("locks on path must be present")
+      .unwrap_node_write_guard_mut_ref("locks on path are for nodes")
+  }
 }
 
-pub fn acquire_write_set(btree: &Arc<BTree>, key_to_delete: &str) -> WriteSetAcquistionResult {
+pub fn acquire_write_set(
+  btree: &Arc<BTree>,
+  key_to_delete: &str,
+) -> WriteSet {
+  loop {
+    // Note that this will release the read lock on the parent (if any).
+    let write_guard_acquisition_result = maybe_acquire_write_set(
+      btree,
+      key_to_delete,
+    );
+
+    match write_guard_acquisition_result {
+      WriteSetAcquisitionResult::TopNodeWentUnstable => {
+        // The deepest stable node may go unstable due to simultaneous
+        // delete, which means we must try everything again.
+        continue;
+      }
+
+      WriteSetAcquisitionResult::Success(write_set) => {
+        // Hopefully the deepest stable node stayed stable! Then we can
+        // continue.
+        return write_set;
+      }
+    }
+  }
+}
+
+fn maybe_acquire_write_set(btree: &Arc<BTree>, key_to_delete: &str) -> WriteSetAcquisitionResult {
   let mut write_set = WriteSet::new();
 
   match acquire_parent_of_stable_node(btree, key_to_delete) {
@@ -133,7 +177,7 @@ pub fn acquire_write_set(btree: &Arc<BTree>, key_to_delete: &str) -> WriteSetAcq
       };
 
       if !write_set.current_node().can_delete_without_merge() {
-        return WriteSetAcquistionResult::TopNodeWentUnstable;
+        return WriteSetAcquisitionResult::TopNodeWentUnstable;
       }
     }
   }
@@ -165,5 +209,5 @@ pub fn acquire_write_set(btree: &Arc<BTree>, key_to_delete: &str) -> WriteSetAcq
     write_set.acquire_node_and_sibbling(btree, path_node_identifier, sibbling_node_identifiers);
   }
 
-  WriteSetAcquistionResult::Success(write_set)
+  WriteSetAcquisitionResult::Success(write_set)
 }

@@ -6,11 +6,11 @@ use std::sync::Arc;
 // insertion.
 pub fn acquire_parent_of_stable_node(
   btree: &Arc<BTree>,
-  insert_key: &str,
+  key_to_delete: &str,
 ) -> Option<ReadGuard> {
   util::acquire_parent_of_deepest_node_meeting_test(
     btree,
-    insert_key,
+    key_to_delete,
     |node_ref| node_ref.can_delete_without_merge(),
   )
 }

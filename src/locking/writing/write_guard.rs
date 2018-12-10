@@ -35,6 +35,16 @@ impl WriteGuard {
     }
   }
 
+  pub fn unwrap_node_write_guard_mut_ref(
+    &mut self,
+    message: &'static str,
+  ) -> &mut NodeWriteGuard {
+    match self {
+      WriteGuard::RootIdentifierWriteGuard(..) => panic!(message),
+      WriteGuard::NodeWriteGuard(node_write_guard) => node_write_guard,
+    }
+  }
+
   pub fn unwrap_node_write_guard_ref(
     &self,
     message: &'static str,
