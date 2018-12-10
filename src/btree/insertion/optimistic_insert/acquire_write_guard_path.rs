@@ -6,7 +6,7 @@ use locking::{
 };
 use std::sync::Arc;
 
-pub enum WriteGuardPathAcquisitionResult {
+enum WriteGuardPathAcquisitionResult {
   Success(WriteGuardPath),
   TopNodeWentUnstable,
 }
@@ -44,7 +44,7 @@ pub fn acquire_write_guard_path(
   }
 }
 
-pub fn maybe_acquire_write_guard_path(
+fn maybe_acquire_write_guard_path(
   btree: &Arc<BTree>,
   parent_read_guard: Option<ReadGuard>,
   insert_key: &str,
