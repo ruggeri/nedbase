@@ -77,18 +77,22 @@ impl InteriorNode {
     &self.identifier
   }
 
-  pub fn sibbling_identifiers_for_idx(&self, idx: usize) -> (Option<&str>, Option<&str>) {
+  pub fn sibbling_identifiers_for_idx(
+    &self,
+    idx: usize,
+  ) -> (Option<&str>, Option<&str>) {
     let left_sibbling_identifier = if 0 < idx {
       Some(self.child_identifier_by_idx(idx - 1))
     } else {
       None
     };
 
-    let right_sibbling_identifier = if idx < self.child_identifiers.len() - 1 {
-      Some(self.child_identifier_by_idx(idx + 1))
-    } else {
-      None
-    };
+    let right_sibbling_identifier =
+      if idx < self.child_identifiers.len() - 1 {
+        Some(self.child_identifier_by_idx(idx + 1))
+      } else {
+        None
+      };
 
     (left_sibbling_identifier, right_sibbling_identifier)
   }

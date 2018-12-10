@@ -10,9 +10,11 @@ use std::sync::Arc;
 pub fn acquire_parent_of_deepest_node_meeting_test<F>(
   btree: &Arc<BTree>,
   key: &str,
-  stability_check: F
+  stability_check: F,
 ) -> Option<ReadGuard>
-where F: Fn(&Node) -> bool {
+where
+  F: Fn(&Node) -> bool,
+{
   let mut read_guards = ReadGuardPath::new();
 
   // Acquire read lock on root identifier, and then on the root node.

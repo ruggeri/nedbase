@@ -33,7 +33,7 @@ fn perform_insertions(btree: &Arc<BTree>) {
   for insertion in insertions {
     if !BTree::contains_key(btree, &insertion) {
       println!("Dropped key: {}", insertion);
-      continue
+      continue;
     }
 
     BTree::delete(btree, &insertion);
