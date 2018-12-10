@@ -1,6 +1,6 @@
 use btree::BTree;
 use locking::{
-  LockTargetRef, NodeWriteGuard, RootIdentifierWriteGuard,
+  NodeWriteGuard, RootIdentifierWriteGuard,
 };
 use std::sync::Arc;
 
@@ -10,20 +10,6 @@ pub enum WriteGuard {
 }
 
 impl WriteGuard {
-  pub fn acquire(
-    btree: &Arc<BTree>,
-    target: LockTargetRef,
-  ) -> WriteGuard {
-    match target {
-      LockTargetRef::RootIdentifierTarget => {
-        Self::acquire_root_identifier_write_guard(btree)
-      }
-      LockTargetRef::NodeTarget(identifier) => {
-        Self::acquire_node_write_guard(btree, identifier)
-      }
-    }
-  }
-
   pub fn acquire_node_write_guard(
     btree: &Arc<BTree>,
     identifier: &str,
@@ -39,13 +25,6 @@ impl WriteGuard {
     WriteGuard::RootIdentifierWriteGuard(
       RootIdentifierWriteGuard::acquire(btree),
     )
-  }
-
-  pub fn location(&self) -> LockTargetRef {
-    match self {
-      WriteGuard::RootIdentifierWriteGuard(guard) => guard.location(),
-      WriteGuard::NodeWriteGuard(guard) => guard.location(),
-    }
   }
 
   pub fn unwrap_node_write_guard(

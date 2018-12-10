@@ -1,5 +1,5 @@
 use btree::BTree;
-use locking::{LockTargetRef, ReadGuard};
+use locking::ReadGuard;
 use node::{InteriorNode, LeafNode, Node};
 
 rental! {
@@ -32,10 +32,6 @@ impl NodeReadGuard {
 
   pub fn is_leaf_node(&self) -> bool {
     self.node().is_leaf_node()
-  }
-
-  pub fn location(&self) -> LockTargetRef {
-    LockTargetRef::NodeTarget(self.identifier())
   }
 
   pub fn node(&self) -> &Node {

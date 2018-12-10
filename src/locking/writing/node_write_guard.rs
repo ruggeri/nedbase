@@ -1,5 +1,5 @@
 use btree::BTree;
-use locking::{LockTargetRef, WriteGuard};
+use locking::WriteGuard;
 use node::{InteriorNode, Node};
 
 rental! {
@@ -25,10 +25,6 @@ impl NodeWriteGuard {
     NodeWriteGuard::new(lock, |lock| {
       lock.write()
     })
-  }
-
-  pub fn location(&self) -> LockTargetRef {
-    LockTargetRef::NodeTarget(self.identifier())
   }
 
   pub fn node(&self) -> &Node {

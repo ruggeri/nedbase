@@ -1,5 +1,5 @@
 use btree::BTree;
-use locking::{LockTargetRef, ReadGuard};
+use locking::ReadGuard;
 use std::sync::Arc;
 
 rental! {
@@ -27,10 +27,6 @@ impl RootIdentifierReadGuard {
 
   pub fn as_str_ref(&self) -> &str {
     &(*self)
-  }
-
-  pub fn location(&self) -> LockTargetRef {
-    LockTargetRef::RootIdentifierTarget
   }
 
   pub fn upcast(self) -> ReadGuard {
