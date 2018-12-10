@@ -2,7 +2,6 @@ use btree::BTree;
 use locking::{
   NodeReadGuard, ReadGuard, ReadGuardPath, RootIdentifierReadGuard,
 };
-use node::Node;
 use std::sync::Arc;
 
 // Finds highest lock target that may need to be mutated by an
@@ -17,11 +16,11 @@ pub fn acquire_parent_of_stable_node(
   {
     let identifier_guard = RootIdentifierReadGuard::acquire(btree);
     let current_node_guard =
-      NodeReadGuard::acquire(btree, &(*identifier_guard));
+      NodeReadGuard::acquire(btree, identifier_guard.as_str_ref());
 
     read_guards
-      .push(ReadGuard::RootIdentifierReadGuard(identifier_guard));
-    read_guards.push(ReadGuard::NodeReadGuard(current_node_guard));
+      .push(identifier_guard.upcast());
+    read_guards.push(current_node_guard.upcast());
   }
 
   // Now descend, taking read locks hand-over-hand.
@@ -32,14 +31,13 @@ pub fn acquire_parent_of_stable_node(
           "final read guard in path should always be for a node",
         );
 
-      match &(**node_read_guard) {
-        Node::LeafNode(_) => break,
-        Node::InteriorNode(inode) => {
-          let child_identifier =
-            inode.child_identifier_by_key(insert_key);
-          NodeReadGuard::acquire(btree, child_identifier)
-        }
+      if node_read_guard.is_leaf_node() {
+        break;
       }
+
+      node_read_guard
+        .unwrap_interior_node_ref("should be descending through InteriorNode")
+        .acquire_read_guard_for_child_by_key(btree, insert_key)
     };
 
     // Whenever we encounter a stable node, we can clear all but the
@@ -59,7 +57,7 @@ pub fn acquire_parent_of_stable_node(
     }
 
     // Regardless, we will continue to hold this lock.
-    read_guards.push(ReadGuard::NodeReadGuard(current_node_guard));
+    read_guards.push(current_node_guard.upcast());
   }
 
   // By the end, we have >= than two locks. We need at most one lock at
@@ -71,7 +69,8 @@ pub fn acquire_parent_of_stable_node(
   //   identifier lock.
   //
   // * If there are no stable nodes, we'll have to acquire the root
-  //   identifier lock. There is no need to hold any read lock anymore.
+  //   identifier lock *for writing*. There is no need to hold any read
+  //   lock anymore.
 
   // First, drop all but the top two locks. Unpack those.
   read_guards.truncate(2);

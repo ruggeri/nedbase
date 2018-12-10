@@ -2,7 +2,7 @@ use btree::BTree;
 use locking::{
   NodeWriteGuard, RootIdentifierWriteGuard, WriteGuard, WriteGuardPath,
 };
-use node::{InsertionResult, Node};
+use node::InsertionResult;
 use std::sync::Arc;
 
 pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
@@ -12,7 +12,7 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
   {
     let identifier_guard = RootIdentifierWriteGuard::acquire(btree);
     let current_node_guard =
-      NodeWriteGuard::acquire(btree, &(*identifier_guard));
+      NodeWriteGuard::acquire(btree, identifier_guard.as_str_ref());
 
     // If root node won't need to split, we can release the write
     // guard on the root identifier.

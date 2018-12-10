@@ -1,7 +1,4 @@
-use super::acquire_parent_of_stable_node::acquire_parent_of_stable_node;
-use super::acquire_write_guard_path::{
-  acquire_write_guard_path, WriteGuardPathAcquisitionResult,
-};
+use super::acquire_write_guard_path::acquire_write_guard_path;
 use btree::BTree;
 use locking::WriteGuard;
 use node::InsertionResult;
@@ -11,37 +8,10 @@ pub fn optimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
   // Acquire a read lock on the parent of the lowest stable node. Then
   // lock that stable node for writing. And acquire the write path down
   // to the leaf.
-  let mut write_guard_path = loop {
-    // Note: parent_of_stable_node might be None if we are splitting the
-    // root.
-    let parent_of_stable_node =
-      acquire_parent_of_stable_node(btree, insert_key);
-
-    // Note that this will release the read lock on the parent (if any).
-    let write_guard_acquisition_result = acquire_write_guard_path(
-      btree,
-      parent_of_stable_node,
-      insert_key,
-    );
-
-    match write_guard_acquisition_result {
-      WriteGuardPathAcquisitionResult::TopNodeWentUnstable => {
-        // The deepest stable node may go unstable due to simultaneous
-        // insert, which means we must try everything again.
-        continue;
-      }
-
-      WriteGuardPathAcquisitionResult::Success(write_guard_path) => {
-        // Hopefully the deepest stable node stayed stable! Then we can
-        // continue.
-        break write_guard_path;
-      }
-    }
-  };
+  let mut write_guard_path = acquire_write_guard_path(btree, insert_key);
 
   // Now we perform the insertion at the leaf node. This may trigger a
   // split.
-  ::util::log_method_entry("beginning insertion process");
   let mut insertion_result = {
     let mut last_node_write_guard = write_guard_path
       .pop("there should be at least one write node: the leaf to insert into")
@@ -64,8 +34,6 @@ pub fn optimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
     match last_write_guard {
       WriteGuard::RootIdentifierWriteGuard(mut identifier_guard) => {
         // We may split all the way to the root.
-        ::util::log_method_entry("trying to split root");
-
         // Create a new root node.
         let new_root_identifier =
           btree.store_new_root_node(child_split_info);
@@ -85,6 +53,4 @@ pub fn optimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
       }
     };
   }
-
-  ::util::log_method_entry("insert completed");
 }

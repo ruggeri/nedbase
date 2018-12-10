@@ -54,3 +54,12 @@ impl NodeReadGuard {
     ReadGuard::NodeReadGuard(self)
   }
 }
+
+// This method is sort-of monkey-patched here because it's really about
+// NodeReadGuard much more than InteriorNode.
+impl InteriorNode {
+  pub fn acquire_read_guard_for_child_by_key(&self, btree: &BTree, key: &str) -> NodeReadGuard {
+    let child_identifier = self.child_identifier_by_key(key);
+    NodeReadGuard::acquire(btree, child_identifier)
+  }
+}

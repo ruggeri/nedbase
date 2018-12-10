@@ -27,11 +27,6 @@ impl NodeWriteGuard {
     })
   }
 
-  pub fn acquire_child_for_key(btree: &BTree, node: &InteriorNode, key: &str) -> NodeWriteGuard {
-    let child_identifier = node.child_identifier_by_key(key);
-    NodeWriteGuard::acquire(btree, child_identifier)
-  }
-
   pub fn location(&self) -> LockTargetRef {
     LockTargetRef::NodeTarget(self.identifier())
   }
