@@ -31,7 +31,7 @@ impl BTree {
 
   pub fn contains_key(btree: &Arc<BTree>, key: &str) -> bool {
     BTree::find_leaf_for_key(btree, key)
-      .unwrap_leaf_node("find_leaf_for_key must return leaf node")
+      .unwrap_leaf_node_ref("find_leaf_for_key must return leaf node")
       .contains_key(key)
   }
 }
