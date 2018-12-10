@@ -74,4 +74,16 @@ impl WriteSet {
         "only root identifier should be stored under empty key",
       )
   }
+
+  pub fn get_root_identifier_guard_mut(
+    &mut self,
+  ) -> &mut RootIdentifierWriteGuard {
+    self
+      .map
+      .get_mut("")
+      .expect("must acquire root identifier before reading it")
+      .unwrap_root_identifier_write_guard_mut_ref(
+        "only root identifier should be stored under empty key",
+      )
+  }
 }

@@ -67,6 +67,18 @@ impl WriteGuard {
     }
   }
 
+  pub fn unwrap_root_identifier_write_guard_mut_ref(
+    &mut self,
+    message: &'static str,
+  ) -> &mut RootIdentifierWriteGuard {
+    match self {
+      WriteGuard::RootIdentifierWriteGuard(root_identifier_guard) => {
+        root_identifier_guard
+      }
+      WriteGuard::NodeWriteGuard(..) => panic!(message),
+    }
+  }
+
   pub fn unwrap_root_identifier_write_guard_ref(
     &self,
     message: &'static str,

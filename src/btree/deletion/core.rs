@@ -1,9 +1,9 @@
-use super::acquire_deletion_path::acquire_deletion_path;
+use super::{acquire_deletion_path, DeletionPathEntry, WriteSet};
 use btree::BTree;
 use std::sync::Arc;
 
 pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
-  let (deletion_path, mut write_set) =
+  let (mut deletion_path, mut write_set) =
     acquire_deletion_path(btree, key_to_delete);
 
   deletion_path
@@ -11,19 +11,34 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
     .unwrap_leaf_node_mut_ref("deletion must happen at a leaf node")
     .delete(key_to_delete);
 
-  // TODO: right now no merging is happening!!
+  loop {
+    // Stop bubbling if we're not deficient and don't need merging
+    // anymore.
+    if !deletion_path.last_node(&write_set).is_deficient() {
+      break;
+    }
 
-  // loop {
-  //   let last_path_entry = write_set
-  //     .pop_last_path_entry("path must not run out prematurely");
-  //   match last_path_entry {
-  //     DeletionPathEntry::TopStableNode { node_identifier } => {
-  //       handle_top_stable_node(write_set, &node_identifier);
-  //       break;
-  //     }
-  //   }
+    match deletion_path.pop_last_path_entry() {
+      DeletionPathEntry::UnstableRootNode { root_identifier } => {
+        handle_unstable_root_node(&mut write_set, root_identifier);
+        return;
+      }
 
-  //   // TODO: Implement me!
-  //   return;
-  // }
+      DeletionPathEntry::TopStableNode { .. } => {
+        panic!("TopStableNode is not supposed to go unstable!")
+      }
+
+      DeletionPathEntry::NodeWithMergeSibbling { .. } => {
+        unimplemented!();
+      }
+    }
+  }
+}
+
+fn handle_unstable_root_node(
+  write_set: &mut WriteSet,
+  root_identifer: String,
+) {
+  let root_identifier_guard = write_set.get_root_identifier_guard_mut();
+  unimplemented!();
 }

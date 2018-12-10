@@ -46,7 +46,10 @@ impl InteriorNode {
   }
 
   pub fn can_delete_without_becoming_deficient(&self) -> bool {
-    Node::is_deficient_size(self.splits.len() - 1, self.max_key_capacity)
+    Node::is_deficient_size(
+      self.splits.len() - 1,
+      self.max_key_capacity,
+    )
   }
 
   pub fn can_grow_without_split(&self) -> bool {

@@ -1,6 +1,7 @@
-use super::acquire_parent_of_stable_node::acquire_parent_of_stable_node;
-use super::deletion_path::{DeletionPath, DeletionPathEntry};
-use super::write_set::WriteSet;
+use super::{
+  acquire_parent_of_stable_node, DeletionPath, DeletionPathEntry,
+  WriteSet,
+};
 use btree::BTree;
 use locking::ReadGuard;
 use std::sync::Arc;
