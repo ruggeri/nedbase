@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::thread;
 
 const MAX_KEYS_PER_NODE: usize = 1024;
-const NUM_INSERTIONS_PER_THREAD: u32 = 100_000;
+const NUM_INSERTIONS_PER_THREAD: u32 = 10_000;
 const NUM_THREADS: u32 = 32;
 
 struct PanicChecker {}
@@ -33,7 +33,10 @@ fn perform_insertions(btree: &Arc<BTree>) {
   for insertion in insertions {
     if !BTree::contains_key(btree, &insertion) {
       println!("Dropped key: {}", insertion);
+      continue
     }
+
+    BTree::delete(btree, &insertion);
   }
 
   nedbase::util::_thread_log("thread_terminated");

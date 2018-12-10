@@ -12,6 +12,7 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
     .unwrap_leaf_node_mut_ref("deletion must happen at leaf node");
 
   loop {
-    unimplemented!()
+    // TODO: Implement me!
+    return
   }
 }
