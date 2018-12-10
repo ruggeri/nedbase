@@ -25,6 +25,10 @@ impl RootIdentifierReadGuard {
     })
   }
 
+  pub fn as_str_ref(&self) -> &str {
+    &(*self)
+  }
+
   pub fn location(&self) -> LockTargetRef {
     LockTargetRef::RootIdentifierTarget
   }

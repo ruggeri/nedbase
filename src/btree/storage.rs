@@ -8,25 +8,50 @@ use std::sync::Arc;
 const IDENTIFIER_LENGTH: usize = 8;
 
 impl BTree {
-  fn store_node(&self, identifier: String, node: Arc<RwLock<Node>>) {
-    ::util::log_node_map_locking(
-      "trying to acquire write lock of node map",
+  pub fn get_new_identifier() -> String {
+    let mut rng = thread_rng();
+    let chars: String = iter::repeat(())
+      .map(|()| rng.sample(Alphanumeric))
+      .take(IDENTIFIER_LENGTH)
+      .collect();
+
+    chars
+  }
+
+  pub fn store_new_interior_node(
+    &self,
+    splits: Vec<String>,
+    child_identifiers: Vec<String>,
+  ) -> String {
+    let identifier = BTree::get_new_identifier();
+
+    // Create the node.
+    let node = InteriorNode::new(
+      identifier.clone(),
+      splits,
+      child_identifiers,
+      self.max_key_capacity,
     );
-    let mut identifier_to_nodes_map =
-      self.identifier_to_node_arc_lock_map.write();
-    ::util::log_node_map_locking("acquired write lock of node map");
-    identifier_to_nodes_map.insert(identifier, node);
-    ::util::log_node_map_locking("released write lock of node map");
+
+    // Upcast and put it into Arc.
+    let node = Arc::new(RwLock::new(node.upcast()));
+
+    // Store the node.
+    self.store_node(identifier.clone(), node);
+
+    identifier
   }
 
   pub fn store_new_leaf_node(&self, keys: Vec<String>) -> String {
     // Choose an identifier.
     let identifier = BTree::get_new_identifier();
 
-    // Create the node and put it into Arc.
+    // Create the node.
     let node =
       LeafNode::new(identifier.clone(), keys, self.max_key_capacity);
-    let node = Arc::new(RwLock::new(Node::LeafNode(node)));
+
+    // Upcast and put it into Arc.
+    let node = Arc::new(RwLock::new(node.upcast()));
 
     // Store the node.
     self.store_node(identifier.clone(), node);
@@ -38,13 +63,15 @@ impl BTree {
     // Choose an identifier.
     let identifier = BTree::get_new_identifier();
 
-    // Create the node and put it into Arc.
+    // Create the node.
     let node = InteriorNode::new_root(
       identifier.clone(),
       split_info,
       self.max_key_capacity,
     );
-    let node = Arc::new(RwLock::new(Node::InteriorNode(node)));
+
+    // Upcast and put it into Arc.
+    let node = Arc::new(RwLock::new(node.upcast()));
 
     // Store the node.
     self.store_node(identifier.clone(), node);
@@ -52,36 +79,9 @@ impl BTree {
     identifier
   }
 
-  pub fn store_new_interior_node(
-    &self,
-    splits: Vec<String>,
-    child_identifiers: Vec<String>,
-  ) -> String {
-    let identifier = BTree::get_new_identifier();
-
-    // Create the node and put it into Arc.
-    let node = InteriorNode::new(
-      identifier.clone(),
-      splits,
-      child_identifiers,
-      self.max_key_capacity,
-    );
-
-    let node = Arc::new(RwLock::new(Node::InteriorNode(node)));
-
-    // Store the node.
-    self.store_node(identifier.clone(), node);
-
-    identifier
-  }
-
-  pub fn get_new_identifier() -> String {
-    let mut rng = thread_rng();
-    let chars: String = iter::repeat(())
-      .map(|()| rng.sample(Alphanumeric))
-      .take(IDENTIFIER_LENGTH)
-      .collect();
-
-    chars
+  fn store_node(&self, identifier: String, node: Arc<RwLock<Node>>) {
+    self.identifier_to_node_arc_lock_map
+      .write()
+      .insert(identifier, node);
   }
 }

@@ -1,6 +1,6 @@
-mod common;
+mod btree;
 mod insertion;
 mod reading;
 mod storage;
 
-pub use self::common::BTree;
+pub use self::btree::BTree;

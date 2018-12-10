@@ -1,3 +1,4 @@
+use node::Node;
 use node::{util::search_sorted_strings_for_str, SplitInfo};
 
 pub struct InteriorNode {
@@ -44,6 +45,10 @@ impl InteriorNode {
     }
   }
 
+  pub fn can_grow_without_split(&self) -> bool {
+    self.splits.len() < self.max_key_capacity
+  }
+
   pub fn child_identifier_by_key(&self, key: &str) -> &str {
     let idx = match search_sorted_strings_for_str(&self.splits, key) {
       Ok(idx) => idx,
@@ -53,11 +58,11 @@ impl InteriorNode {
     &self.child_identifiers[idx]
   }
 
-  pub fn can_grow_without_split(&self) -> bool {
-    self.splits.len() < self.max_key_capacity
-  }
-
   pub fn identifier(&self) -> &str {
     &self.identifier
+  }
+
+  pub fn upcast(self) -> Node {
+    Node::InteriorNode(self)
   }
 }
