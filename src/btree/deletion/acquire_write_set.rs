@@ -4,6 +4,8 @@ use locking::{NodeWriteGuard, ReadGuard, RootIdentifierWriteGuard, WriteGuard};
 use std::collections::HashMap;
 use std::sync::Arc;
 
+type SibblingIdentifierPair = (Option<String>, Option<String>);
+
 pub enum WriteSetAcquistionResult {
   Success(WriteSet),
   TopNodeWentUnstable,
@@ -18,7 +20,7 @@ pub enum DeletionPathEntry {
   },
   NodeWithMergeSibbling {
     path_node_identifier: String,
-    sibbling_node_identifieR: String,
+    sibbling_node_identifier: String,
   },
 }
 
@@ -52,6 +54,43 @@ impl WriteSet {
     self.map.insert(String::from(identifier), guard.upcast());
     self.path.push(DeletionPathEntry::TopStableNode {
       node_identifier: String::from(identifier)
+    });
+  }
+
+  // When there is a top stable node, we acquire a write lock on it.
+  pub fn acquire_node_and_sibbling(&mut self, btree: &Arc<BTree>, path_node_identifier: String, sibbling_node_identifiers: SibblingIdentifierPair) {
+    let path_node_guard = NodeWriteGuard::acquire(btree, &path_node_identifier);
+
+    let (sibbling_node_identifier, sibbling_node_guard) = match sibbling_node_identifiers {
+      (None, None) => panic!("how can a node not have any sibblings?"),
+
+      (Some(sibbling_node_identifier), None) | (None, Some(sibbling_node_identifier)) => {
+        let sibbling_node_guard = NodeWriteGuard::acquire(btree, &sibbling_node_identifier);
+        (sibbling_node_identifier, sibbling_node_guard)
+      }
+
+      (Some(left_sibbling_node_identifier), Some(right_sibbling_node_identifier)) => {
+        let left_sibbling_guard = NodeWriteGuard::acquire(btree, &left_sibbling_node_identifier);
+
+        if left_sibbling_guard.can_delete_without_merge() {
+          (left_sibbling_node_identifier, left_sibbling_guard)
+        } else {
+          // I doubt randomization would help. You will take values from
+          // left until you can't anymore, and THEN you'll take from
+          // right. So it doesn't matter. You won't merge until you
+          // must.
+          let right_sibbling_guard = NodeWriteGuard::acquire(btree, &right_sibbling_node_identifier);
+          (right_sibbling_node_identifier, right_sibbling_guard)
+        }
+      }
+    };
+
+    self.map.insert(path_node_identifier.clone(), path_node_guard.upcast());
+    self.map.insert(sibbling_node_identifier.clone(), sibbling_node_guard.upcast());
+
+    self.path.push(DeletionPathEntry::NodeWithMergeSibbling {
+      path_node_identifier,
+      sibbling_node_identifier,
     });
   }
 
@@ -101,7 +140,29 @@ pub fn acquire_write_set(btree: &Arc<BTree>, key_to_delete: &str) -> WriteSetAcq
 
   // TODO: we must now crawl our way down...
   loop {
-    unimplemented!();
+    if write_set.current_node().is_leaf_node() {
+      break;
+    }
+
+    let (path_node_identifier, sibbling_node_identifiers) = {
+      let current_node = write_set
+        .current_node()
+        .unwrap_interior_node_ref("must not descend through leaves");
+
+      let child_idx = current_node.child_idx_by_key(key_to_delete);
+      let path_node_identifier = current_node.child_identifier_by_idx(child_idx);
+      let sibbling_node_identifiers = current_node.sibbling_identifiers_for_idx(child_idx);
+
+      (
+        String::from(path_node_identifier),
+        (
+          sibbling_node_identifiers.0.map(String::from),
+          sibbling_node_identifiers.1.map(String::from),
+        )
+      )
+    };
+
+    write_set.acquire_node_and_sibbling(btree, path_node_identifier, sibbling_node_identifiers);
   }
 
   WriteSetAcquistionResult::Success(write_set)
