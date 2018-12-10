@@ -49,7 +49,7 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
       write_guards.clear();
     }
 
-    // Regardless, hold this lock.
+    // Regardless, keep holding this lock.
     write_guards.push(current_node_guard.upcast());
   }
 
