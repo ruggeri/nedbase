@@ -22,8 +22,10 @@ impl LeafNode {
     btree: &BTree,
     left_node: &LeafNode,
     right_node: &LeafNode,
-  ) -> LeafNode {
-    // TODO: Write me!
-    unimplemented!()
+  ) -> String {
+    let mut keys = left_node.keys.clone();
+    keys.extend(right_node.keys.iter().cloned());
+
+    btree.store_new_leaf_node(keys)
   }
 }
