@@ -97,7 +97,7 @@ fn begin_deletion_path(
   // happened, we will have to start everything again...
   let last_node_of_path = deletion_path.last_node(write_set);
 
-  if !last_node_of_path.can_delete_without_merge() {
+  if !last_node_of_path.can_delete_without_becoming_deficient() {
     None
   } else {
     Some(deletion_path)
@@ -186,7 +186,7 @@ fn acquire_sibbling_node(
         let left_sibbling_guard = write_set
           .acquire_node_guard(btree, &left_sibbling_node_identifier);
 
-        if left_sibbling_guard.can_delete_without_merge() {
+        if left_sibbling_guard.can_delete_without_becoming_deficient() {
           return left_sibbling_node_identifier;
         }
       }

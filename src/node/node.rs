@@ -6,11 +6,11 @@ pub enum Node {
 }
 
 impl Node {
-  pub fn can_delete_without_merge(&self) -> bool {
+  pub fn can_delete_without_becoming_deficient(&self) -> bool {
     match self {
-      Node::LeafNode(leaf_node) => leaf_node.can_delete_without_merge(),
+      Node::LeafNode(leaf_node) => leaf_node.can_delete_without_becoming_deficient(),
       Node::InteriorNode(interior_node) => {
-        interior_node.can_delete_without_merge()
+        interior_node.can_delete_without_becoming_deficient()
       }
     }
   }
@@ -29,6 +29,20 @@ impl Node {
       Node::LeafNode(leaf_node) => &leaf_node.identifier(),
       Node::InteriorNode(interior_node) => &interior_node.identifier(),
     }
+  }
+
+  pub fn is_deficient(&self) -> bool {
+    match self {
+      Node::LeafNode(leaf_node) => leaf_node.is_deficient(),
+      Node::InteriorNode(interior_node) => interior_node.is_deficient(),
+    }
+  }
+
+  // Helper to determine whether a node is deficient in size.
+  pub fn is_deficient_size(num_keys: usize, max_key_capacity: usize) -> bool {
+    // The largest deficient node should be able to merge with the
+    // smallest sufficient node and still obey max_key_capacity.
+    num_keys + (num_keys + 1) <= max_key_capacity
   }
 
   pub fn is_interior_node(&self) -> bool {

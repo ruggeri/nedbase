@@ -20,8 +20,8 @@ impl LeafNode {
     }
   }
 
-  pub fn can_delete_without_merge(&self) -> bool {
-    self.max_key_capacity / 2 < self.keys.len()
+  pub fn can_delete_without_becoming_deficient(&self) -> bool {
+    Node::is_deficient_size(self.keys.len() - 1, self.max_key_capacity)
   }
 
   pub fn can_grow_without_split(&self) -> bool {
@@ -34,6 +34,10 @@ impl LeafNode {
 
   pub fn identifier(&self) -> &str {
     &self.identifier
+  }
+
+  pub fn is_deficient(&self) -> bool {
+    Node::is_deficient_size(self.keys.len(), self.max_key_capacity)
   }
 
   pub fn upcast(self) -> Node {
