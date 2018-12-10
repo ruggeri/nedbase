@@ -1,6 +1,8 @@
+mod acquire_deletion_path;
 mod acquire_parent_of_stable_node;
-mod acquire_write_set;
 mod core;
+mod deletion_path;
+mod write_set;
 
 use btree::BTree;
 use std::sync::Arc;

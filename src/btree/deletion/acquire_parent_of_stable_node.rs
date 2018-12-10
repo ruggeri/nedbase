@@ -1,4 +1,4 @@
-use btree::{BTree, util};
+use btree::{util, BTree};
 use locking::ReadGuard;
 use std::sync::Arc;
 
