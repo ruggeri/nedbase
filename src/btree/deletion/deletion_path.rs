@@ -82,7 +82,7 @@ impl DeletionPath {
     write_set: &'a WriteSet,
   ) -> &'a NodeWriteGuard {
     let last_identifier = self.last_identifier_of_path();
-    write_set.get_node(last_identifier)
+    write_set.get_node_ref(last_identifier)
   }
 
   // The last node that was added to this path.
@@ -91,7 +91,7 @@ impl DeletionPath {
     write_set: &'a mut WriteSet,
   ) -> &'a mut NodeWriteGuard {
     let last_identifier = self.last_identifier_of_path();
-    write_set.get_mut_node(last_identifier)
+    write_set.get_node_mut_ref(last_identifier)
   }
 
   // The last entry that was added to this path.

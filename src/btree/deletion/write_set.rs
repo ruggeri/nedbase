@@ -23,7 +23,7 @@ impl WriteSet {
     self
       .map
       .insert(String::from(identifier), node_guard.upcast());
-    self.get_node(identifier)
+    self.get_node_ref(identifier)
   }
 
   pub fn acquire_root_identifier(
@@ -35,14 +35,14 @@ impl WriteSet {
     self
       .map
       .insert(String::from(""), root_identifier_guard.upcast());
-    self.get_root_identifier_guard()
+    self.get_root_identifier_guard_ref()
   }
 
   pub fn drop_node_guard(&mut self, identifier: &str) {
     self.map.remove(identifier);
   }
 
-  pub fn get_node(&self, identifier: &str) -> &NodeWriteGuard {
+  pub fn get_node_ref(&self, identifier: &str) -> &NodeWriteGuard {
     self
       .map
       .get(identifier)
@@ -52,7 +52,7 @@ impl WriteSet {
       )
   }
 
-  pub fn get_mut_node(
+  pub fn get_node_mut_ref(
     &mut self,
     identifier: &str,
   ) -> &mut NodeWriteGuard {
@@ -65,7 +65,9 @@ impl WriteSet {
       )
   }
 
-  pub fn get_root_identifier_guard(&self) -> &RootIdentifierWriteGuard {
+  pub fn get_root_identifier_guard_ref(
+    &self,
+  ) -> &RootIdentifierWriteGuard {
     self
       .map
       .get("")
@@ -75,7 +77,7 @@ impl WriteSet {
       )
   }
 
-  pub fn get_root_identifier_guard_mut(
+  pub fn get_root_identifier_guard_mut_ref(
     &mut self,
   ) -> &mut RootIdentifierWriteGuard {
     self

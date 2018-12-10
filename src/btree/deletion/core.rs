@@ -1,4 +1,6 @@
-use super::{acquire_deletion_path, DeletionPathEntry, UnderflowAction};
+use super::{
+  acquire_deletion_path, DeletionPathEntry, UnderflowAction, WriteSet,
+};
 use btree::BTree;
 use std::sync::Arc;
 
@@ -34,12 +36,32 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
     match underflow_action {
       UnderflowAction::UpdateRootIdentifier => {
         // TODO: Should update root identifier...
-        return
+        return;
       }
 
-      UnderflowAction::MergeWithSibbling { .. } => {
-        // TODO: Should merge with sibbling.
+      UnderflowAction::MergeWithSibbling {
+        parent_node_identifier,
+        sibbling_node_identifier,
+      } => MergeOperation {
+        parent_node_identifier,
+        path_node_identifier,
+        sibbling_node_identifier,
       }
+      .execute(&mut write_set),
     }
+  }
+}
+
+// Basically a helper just so that Strings are passed in right order (by
+// name).
+struct MergeOperation {
+  parent_node_identifier: String,
+  path_node_identifier: String,
+  sibbling_node_identifier: String,
+}
+
+impl MergeOperation {
+  fn execute(self, write_set: &mut WriteSet) {
+    // TODO: Write me!
   }
 }

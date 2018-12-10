@@ -48,7 +48,7 @@ impl InteriorNode {
   pub fn can_delete_without_becoming_deficient(&self) -> bool {
     if self.splits.is_empty() {
       // Special case because else subtraction by one is dangerous!
-      return false
+      return false;
     }
 
     !Node::is_deficient_size(
