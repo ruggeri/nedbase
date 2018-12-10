@@ -52,17 +52,36 @@ impl WriteSet {
       )
   }
 
+  // STFU clippy: I'm not fucking asking you.
+  #[allow(clippy::mut_from_ref)]
   pub fn get_node_mut_ref(
-    &mut self,
+    &self,
     identifier: &str,
   ) -> &mut NodeWriteGuard {
-    self
-      .map
-      .get_mut(identifier)
-      .expect("must acquire node before reading it")
-      .unwrap_node_write_guard_mut_ref(
-        "only nodes should be stored under a proper identifier",
-      )
+    // Here's the deal. I need to get multiple locks simultaneously. But
+    // if I'm forced to take a mutable borrow here, I can't have any
+    // simultaneous borrows: even immutable ones!
+    //
+    // This is safe so long as an intervening operation doesn't mutate
+    // the size of the hash map. But if the HashMap is resized, then the
+    // underlying lock might have been moved elsewhere.
+    //
+    // I don't want to use RefCell because it costs more (maybe I should
+    // though). I could also *remove* a lock (adding it back later), but
+    // that costs hashing...
+    //
+    // TODO: Consider alternatives.
+    unsafe {
+      let node_guard = self
+        .map
+        .get(identifier)
+        .expect("must acquire node before reading it")
+        .unwrap_node_write_guard_ref(
+          "only nodes should be stored under a proper identifier",
+        ) as *const NodeWriteGuard;
+
+      &mut *(node_guard as *mut NodeWriteGuard)
+    }
   }
 
   pub fn get_root_identifier_guard_ref(

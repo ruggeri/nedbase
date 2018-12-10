@@ -47,7 +47,7 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
         path_node_identifier,
         sibbling_node_identifier,
       }
-      .execute(&mut write_set),
+      .execute(btree, &mut write_set),
     }
   }
 }
@@ -61,7 +61,20 @@ struct MergeOperation {
 }
 
 impl MergeOperation {
-  fn execute(self, write_set: &mut WriteSet) {
-    // TODO: Write me!
+  fn execute(self, btree: &BTree, write_set: &mut WriteSet) {
+    let parent_node = write_set
+      .get_node_mut_ref(&self.parent_node_identifier)
+      .unwrap_interior_node_mut_ref("parents must be InteriorNodes");
+
+    let path_node = write_set.get_node_ref(&self.path_node_identifier);
+
+    let sibbling_node_identifier =
+      write_set.get_node_ref(&self.sibbling_node_identifier);
+
+    parent_node.merge_children(
+      btree,
+      path_node,
+      sibbling_node_identifier,
+    );
   }
 }

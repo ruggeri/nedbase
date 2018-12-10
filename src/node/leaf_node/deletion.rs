@@ -1,4 +1,5 @@
 use super::LeafNode;
+use btree::BTree;
 use node::util::search_sorted_strings_for_str;
 use node::DeletionResult;
 
@@ -15,5 +16,14 @@ impl LeafNode {
         DeletionResult::DidDelete
       }
     }
+  }
+
+  pub fn merge_sibblings(
+    btree: &BTree,
+    left_node: &LeafNode,
+    right_node: &LeafNode,
+  ) -> LeafNode {
+    // TODO: Write me!
+    unimplemented!()
   }
 }
