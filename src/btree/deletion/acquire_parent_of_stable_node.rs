@@ -11,6 +11,6 @@ pub fn acquire_parent_of_stable_node(
   util::acquire_parent_of_deepest_node_meeting_test(
     btree,
     insert_key,
-    |node_ref| node_ref.can_grow_without_split()
+    |node_ref| node_ref.can_delete_without_merge(),
   )
 }

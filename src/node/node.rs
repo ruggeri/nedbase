@@ -6,6 +6,15 @@ pub enum Node {
 }
 
 impl Node {
+  pub fn can_delete_without_merge(&self) -> bool {
+    match self {
+      Node::LeafNode(leaf_node) => leaf_node.can_delete_without_merge(),
+      Node::InteriorNode(interior_node) => {
+        interior_node.can_delete_without_merge()
+      }
+    }
+  }
+
   pub fn can_grow_without_split(&self) -> bool {
     match self {
       Node::LeafNode(leaf_node) => leaf_node.can_grow_without_split(),

@@ -45,6 +45,10 @@ impl InteriorNode {
     }
   }
 
+  pub fn can_delete_without_merge(&self) -> bool {
+    self.max_key_capacity / 2 < self.splits.len()
+  }
+
   pub fn can_grow_without_split(&self) -> bool {
     self.splits.len() < self.max_key_capacity
   }
