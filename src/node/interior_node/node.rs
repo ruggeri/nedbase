@@ -89,6 +89,10 @@ impl InteriorNode {
     Node::is_deficient_size(self.splits.len(), self.max_key_capacity)
   }
 
+  pub fn num_children(&self) -> usize {
+    self.child_identifiers.len()
+  }
+
   pub fn sibbling_identifiers_for_idx(
     &self,
     idx: usize,

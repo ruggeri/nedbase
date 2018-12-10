@@ -35,8 +35,31 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
 
     match underflow_action {
       UnderflowAction::UpdateRootIdentifier => {
-        // TODO: Should update root identifier...
-        return;
+        let new_root_identifier = {
+          let root_node = write_set.get_node_ref(&path_node_identifier);
+
+          if root_node.is_leaf_node() {
+            // Nothing to do with an underfull root leaf. We are done!
+            return;
+          }
+
+          let root_node = root_node.unwrap_interior_node_ref(
+            "can't reduce depth if root is already LeafNode",
+          );
+
+          // We will only "consume" the root and decrease the height of
+          // the BTree when the root has a single child.
+          if root_node.num_children() > 1 {
+            return;
+          }
+
+          String::from(root_node.child_identifier_by_idx(0))
+        };
+
+        let root_identifier_guard =
+          write_set.get_root_identifier_guard_mut_ref();
+        **root_identifier_guard = new_root_identifier;
+        return
       }
 
       UnderflowAction::MergeWithSibbling {
