@@ -1,4 +1,4 @@
-use super::{acquire_deletion_path, DeletionPathEntry, WriteSet};
+use super::{acquire_deletion_path, DeletionPathEntry, UnderflowAction};
 use btree::BTree;
 use std::sync::Arc;
 
@@ -18,6 +18,7 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
       break;
     }
 
+    // Unwrap the action we must take for this deficient node.
     let (underflow_action, path_node_identifier) =
       match deletion_path.pop_last_path_entry() {
         DeletionPathEntry::TopStableNode { .. } => {
@@ -30,6 +31,15 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
         } => (underflow_action, path_node_identifier),
       };
 
-    unimplemented!();
+    match underflow_action {
+      UnderflowAction::UpdateRootIdentifier => {
+        // TODO: Should update root identifier...
+        return
+      }
+
+      UnderflowAction::MergeWithSibbling { .. } => {
+        // TODO: Should merge with sibbling.
+      }
+    }
   }
 }
