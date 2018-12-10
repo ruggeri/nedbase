@@ -18,8 +18,7 @@ pub fn acquire_parent_of_stable_node(
     let current_node_guard =
       NodeReadGuard::acquire(btree, identifier_guard.as_str_ref());
 
-    read_guards
-      .push(identifier_guard.upcast());
+    read_guards.push(identifier_guard.upcast());
     read_guards.push(current_node_guard.upcast());
   }
 
@@ -36,7 +35,9 @@ pub fn acquire_parent_of_stable_node(
       }
 
       node_read_guard
-        .unwrap_interior_node_ref("should be descending through InteriorNode")
+        .unwrap_interior_node_ref(
+          "should be descending through InteriorNode",
+        )
         .acquire_read_guard_for_child_by_key(btree, insert_key)
     };
 

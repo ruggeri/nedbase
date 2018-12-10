@@ -14,11 +14,9 @@ pub struct BTree {
 impl BTree {
   pub fn new(max_key_capacity: usize) -> BTree {
     let root_identifier: String = BTree::get_new_identifier();
-    let root_node = LeafNode::new(
-      root_identifier.clone(),
-      vec![],
-      max_key_capacity,
-    ).upcast();
+    let root_node =
+      LeafNode::new(root_identifier.clone(), vec![], max_key_capacity)
+        .upcast();
 
     let mut identifier_to_node_arc_lock_map = HashMap::new();
     identifier_to_node_arc_lock_map.insert(

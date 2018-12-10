@@ -1,5 +1,5 @@
-use node::Node;
 use node::util::search_sorted_strings_for_str;
+use node::Node;
 
 pub struct LeafNode {
   pub(super) identifier: String,

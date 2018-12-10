@@ -14,7 +14,7 @@ pub enum WriteGuardPathAcquisitionResult {
 pub fn acquire_write_guard_path(
   btree: &Arc<BTree>,
   insert_key: &str,
-  ) -> WriteGuardPath {
+) -> WriteGuardPath {
   loop {
     // Note: parent_of_stable_node might be None if we are splitting the
     // root.
@@ -41,7 +41,7 @@ pub fn acquire_write_guard_path(
         return write_guard_path;
       }
     }
-  };
+  }
 }
 
 pub fn maybe_acquire_write_guard_path(
@@ -77,9 +77,10 @@ pub fn maybe_acquire_write_guard_path(
       let deepest_stable_parent = match parent_read_guard {
         ReadGuard::RootIdentifierReadGuard(
           root_identifier_read_guard,
-        ) => {
-          NodeWriteGuard::acquire(btree, root_identifier_read_guard.as_str_ref())
-        }
+        ) => NodeWriteGuard::acquire(
+          btree,
+          root_identifier_read_guard.as_str_ref(),
+        ),
 
         ReadGuard::NodeReadGuard(parent_node_read_guard) => {
           parent_node_read_guard
@@ -96,8 +97,7 @@ pub fn maybe_acquire_write_guard_path(
         return WriteGuardPathAcquisitionResult::TopNodeWentUnstable;
       }
 
-      write_guards
-        .push(deepest_stable_parent.upcast());
+      write_guards.push(deepest_stable_parent.upcast());
     }
   }
 
@@ -115,7 +115,9 @@ pub fn maybe_acquire_write_guard_path(
       }
 
       last_node_guard
-        .unwrap_interior_node_ref("should be descending through InteriorNode")
+        .unwrap_interior_node_ref(
+          "should be descending through InteriorNode",
+        )
         .acquire_write_guard_for_child_by_key(btree, insert_key)
     };
 

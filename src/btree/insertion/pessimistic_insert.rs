@@ -39,7 +39,9 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
       }
 
       prev_node_write_guard
-        .unwrap_interior_node_ref("must not descend through interior node")
+        .unwrap_interior_node_ref(
+          "must not descend through interior node",
+        )
         .acquire_write_guard_for_child_by_key(btree, insert_key)
     };
 

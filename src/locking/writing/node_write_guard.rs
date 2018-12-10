@@ -22,9 +22,7 @@ impl NodeWriteGuard {
   pub fn acquire(btree: &BTree, identifier: &str) -> NodeWriteGuard {
     let lock = btree.get_node_arc_lock(&identifier);
 
-    NodeWriteGuard::new(lock, |lock| {
-      lock.write()
-    })
+    NodeWriteGuard::new(lock, |lock| lock.write())
   }
 
   pub fn node(&self) -> &Node {
@@ -39,7 +37,11 @@ impl NodeWriteGuard {
 // This method is sort-of monkey-patched here because it's really about
 // NodeWriteGuard much more than InteriorNode.
 impl InteriorNode {
-  pub fn acquire_write_guard_for_child_by_key(&self, btree: &BTree, key: &str) -> NodeWriteGuard {
+  pub fn acquire_write_guard_for_child_by_key(
+    &self,
+    btree: &BTree,
+    key: &str,
+  ) -> NodeWriteGuard {
     let child_identifier = self.child_identifier_by_key(key);
     NodeWriteGuard::acquire(btree, child_identifier)
   }

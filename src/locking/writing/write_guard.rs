@@ -1,7 +1,5 @@
 use btree::BTree;
-use locking::{
-  NodeWriteGuard, RootIdentifierWriteGuard,
-};
+use locking::{NodeWriteGuard, RootIdentifierWriteGuard};
 use std::sync::Arc;
 
 pub enum WriteGuard {

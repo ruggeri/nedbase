@@ -20,14 +20,16 @@ impl BTree {
 
     loop {
       if current_node_guard.is_leaf_node() {
-        break
+        break;
       }
 
       // Notice how I do the hand-over-hand locking here. This happens
       // because of reassignment to current_node_guard
       current_node_guard = {
         let child_identifier = current_node_guard
-          .unwrap_interior_node_ref("must not try to descend through leaf node")
+          .unwrap_interior_node_ref(
+            "must not try to descend through leaf node",
+          )
           .child_identifier_by_key(key);
         NodeReadGuard::acquire(btree, child_identifier)
       };

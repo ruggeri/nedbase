@@ -21,9 +21,7 @@ pub use self::rentals::NodeReadGuard;
 impl NodeReadGuard {
   pub fn acquire(btree: &BTree, identifier: &str) -> NodeReadGuard {
     let lock = btree.get_node_arc_lock(&identifier);
-    NodeReadGuard::new(lock, |lock| {
-      lock.read()
-    })
+    NodeReadGuard::new(lock, |lock| lock.read())
   }
 
   pub fn is_interior_node(&self) -> bool {
@@ -38,11 +36,17 @@ impl NodeReadGuard {
     &(*self)
   }
 
-  pub fn unwrap_interior_node_ref(&self, message: &'static str) -> &InteriorNode {
+  pub fn unwrap_interior_node_ref(
+    &self,
+    message: &'static str,
+  ) -> &InteriorNode {
     self.node().unwrap_interior_node_ref(message)
   }
 
-  pub fn unwrap_leaf_node_ref(&self, message: &'static str) -> &LeafNode {
+  pub fn unwrap_leaf_node_ref(
+    &self,
+    message: &'static str,
+  ) -> &LeafNode {
     self.node().unwrap_leaf_node_ref(message)
   }
 
@@ -54,7 +58,11 @@ impl NodeReadGuard {
 // This method is sort-of monkey-patched here because it's really about
 // NodeReadGuard much more than InteriorNode.
 impl InteriorNode {
-  pub fn acquire_read_guard_for_child_by_key(&self, btree: &BTree, key: &str) -> NodeReadGuard {
+  pub fn acquire_read_guard_for_child_by_key(
+    &self,
+    btree: &BTree,
+    key: &str,
+  ) -> NodeReadGuard {
     let child_identifier = self.child_identifier_by_key(key);
     NodeReadGuard::acquire(btree, child_identifier)
   }

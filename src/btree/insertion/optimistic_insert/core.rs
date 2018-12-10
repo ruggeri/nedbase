@@ -8,7 +8,8 @@ pub fn optimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
   // Acquire a read lock on the parent of the lowest stable node. Then
   // lock that stable node for writing. And acquire the write path down
   // to the leaf.
-  let mut write_guard_path = acquire_write_guard_path(btree, insert_key);
+  let mut write_guard_path =
+    acquire_write_guard_path(btree, insert_key);
 
   // Now we perform the insertion at the leaf node. This may trigger a
   // split.

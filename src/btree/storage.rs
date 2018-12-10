@@ -80,7 +80,8 @@ impl BTree {
   }
 
   fn store_node(&self, identifier: String, node: Arc<RwLock<Node>>) {
-    self.identifier_to_node_arc_lock_map
+    self
+      .identifier_to_node_arc_lock_map
       .write()
       .insert(identifier, node);
   }

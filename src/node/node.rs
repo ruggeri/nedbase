@@ -25,14 +25,14 @@ impl Node {
   pub fn is_interior_node(&self) -> bool {
     match self {
       Node::InteriorNode(..) => true,
-      _ => false
+      _ => false,
     }
   }
 
   pub fn is_leaf_node(&self) -> bool {
     match self {
       Node::LeafNode(..) => true,
-      _ => false
+      _ => false,
     }
   }
 

@@ -4,7 +4,11 @@ pub struct ReadGuardPath {
   read_guards: Vec<ReadGuard>,
 }
 
-#[allow(len_without_is_empty, new_without_default, new_without_default_derive)]
+#[allow(
+  len_without_is_empty,
+  new_without_default,
+  new_without_default_derive
+)]
 impl ReadGuardPath {
   pub fn new() -> ReadGuardPath {
     ReadGuardPath {
