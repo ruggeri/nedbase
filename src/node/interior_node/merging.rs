@@ -3,11 +3,11 @@ use btree::BTree;
 use node::{LeafNode, Node};
 
 impl InteriorNode {
-  pub fn merge_children(
+  pub fn merge_or_rotate_children(
     &mut self,
     btree: &BTree,
-    node1: &Node,
-    node2: &Node,
+    node1: &mut Node,
+    node2: &mut Node,
   ) {
     let idx1 = self
       .child_identifiers
@@ -30,13 +30,17 @@ impl InteriorNode {
     // Merges two nodes immutably, creating a new node.
     let new_node_identifier = match (left_node, right_node) {
       (Node::LeafNode(left_node), Node::LeafNode(right_node)) => {
-        LeafNode::merge_sibblings(btree, left_node, right_node)
+        LeafNode::merge_or_rotate_sibblings(
+          btree, left_node, right_node,
+        )
       }
 
       (
         Node::InteriorNode(left_node),
         Node::InteriorNode(right_node),
-      ) => InteriorNode::merge_sibblings(btree, left_node, right_node),
+      ) => InteriorNode::merge_or_rotate_sibblings(
+        btree, left_node, right_node,
+      ),
 
       _ => panic!("sibblings can't ever be different node types..."),
     };
@@ -50,11 +54,13 @@ impl InteriorNode {
     self.child_identifiers[left_idx] = new_node_identifier;
   }
 
-  pub fn merge_sibblings(
+  pub fn merge_or_rotate_sibblings(
     btree: &BTree,
     left_node: &InteriorNode,
     right_node: &InteriorNode,
   ) -> String {
+    // TODO: Must write logic for rotation!!
+
     // Merge splits
     let mut splits = left_node.splits.clone();
     splits.extend(right_node.splits.iter().cloned());

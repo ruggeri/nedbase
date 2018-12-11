@@ -20,11 +20,13 @@ impl LeafNode {
     }
   }
 
-  pub fn merge_sibblings(
+  pub fn merge_or_rotate_sibblings(
     btree: &BTree,
-    left_node: &LeafNode,
-    right_node: &LeafNode,
+    left_node: &mut LeafNode,
+    right_node: &mut LeafNode,
   ) -> String {
+    // TODO: Must write logic for rotation!!
+
     let mut keys = left_node.keys.clone();
     keys.extend(right_node.keys.iter().cloned());
 
