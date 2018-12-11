@@ -1,4 +1,6 @@
-use super::{acquire_deletion_path, DeletionPathEntry, UnderflowActionResult};
+use super::{
+  acquire_deletion_path, DeletionPathEntry, UnderflowActionResult,
+};
 use btree::BTree;
 use std::sync::Arc;
 
@@ -17,7 +19,7 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
 
     // Can avoid any bubblingn if leaf node never goes deficient.
     if !leaf_node.is_deficient() {
-      return
+      return;
     }
   }
 
@@ -39,7 +41,7 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
     // Action may have us stop if we hit a stable parent or consume the
     // root.
     if let UnderflowActionResult::StopBubbling = result {
-      return
+      return;
     }
   }
 }

@@ -27,6 +27,7 @@ impl LeafNode {
     self.insert_and_split(btree, key_to_insert)
   }
 
+  // TODO: Could this become a more simple `split` method?
   fn insert_and_split(
     &self,
     btree: &BTree,
