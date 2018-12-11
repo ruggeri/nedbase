@@ -1,4 +1,4 @@
-use super::{acquire_deletion_path, DeletionPathEntry};
+use super::{acquire_deletion_path, DeletionPathEntry, UnderflowActionResult};
 use btree::BTree;
 use std::sync::Arc;
 
@@ -8,18 +8,20 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
     acquire_deletion_path(btree, key_to_delete);
 
   // Perform the delete at the LeafNode.
-  deletion_path
-    .last_node_mut_ref(&mut write_set)
-    .unwrap_leaf_node_mut_ref("deletion must happen at a leaf node")
-    .delete(key_to_delete);
+  {
+    let leaf_node = deletion_path
+      .last_node_mut_ref(&mut write_set)
+      .unwrap_leaf_node_mut_ref("deletion must happen at a leaf node");
+
+    leaf_node.delete(key_to_delete);
+
+    // Can avoid any bubblingn if leaf node never goes deficient.
+    if !leaf_node.is_deficient() {
+      return
+    }
+  }
 
   loop {
-    // Stop bubbling if we're not deficient and don't need merging
-    // anymore.
-    if !deletion_path.last_node_ref(&write_set).is_deficient() {
-      break;
-    }
-
     // Unwrap the action we must take for this deficient node.
     let underflow_action = match deletion_path.pop_last_path_entry() {
       DeletionPathEntry::TopStableNode { .. } => {
@@ -31,6 +33,13 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
       }
     };
 
-    underflow_action.execute(btree, &mut write_set);
+    // Execute the action.
+    let result = underflow_action.execute(btree, &mut write_set);
+
+    // Action may have us stop if we hit a stable parent or consume the
+    // root.
+    if let UnderflowActionResult::StopBubbling = result {
+      return
+    }
   }
 }

@@ -11,7 +11,7 @@ pub(self) use self::acquire_parent_of_deepest_stable_node::acquire_parent_of_dee
 pub(self) use self::deletion_path::{
   acquire_deletion_path, DeletionPathEntry,
 };
-pub(self) use self::underflow_actions::UnderflowAction;
+pub(self) use self::underflow_actions::{UnderflowAction, UnderflowActionResult};
 pub(self) use self::write_set::WriteSet;
 
 impl BTree {
