@@ -8,7 +8,6 @@ impl InteriorNode {
     btree: &BTree,
     child_split_info: SplitInfo,
   ) -> InsertionResult {
-    // TODO: This is slowish. But I'm not sure how to make faster.
     let old_child_idx = self
       .child_identifiers
       .iter()
@@ -42,6 +41,8 @@ impl InteriorNode {
     let new_median_idx = self.max_key_capacity / 2;
     let new_median = self.splits[new_median_idx].clone();
 
+    // When taking lef_child_identifiers, remember that we need one more
+    // child_identifier than split key (thus `=new_median_idx`).
     let mut left_splits = self.splits[0..new_median_idx].to_vec();
     let mut left_child_identifiers =
       self.child_identifiers[0..=new_median_idx].to_vec();
@@ -50,9 +51,10 @@ impl InteriorNode {
     let mut right_child_identifiers =
       self.child_identifiers[(new_median_idx + 1)..].to_vec();
 
-    // Insert the newly split children.
+    // Insert the split nodes of the child into one of the split nodes
+    // of the parent.
     {
-      // Which side should they belong on?
+      // Which side should the child's split nodes belong on?
       let (splits, identifiers, old_child_idx) =
         if old_child_idx < left_child_identifiers.len() {
           (&mut left_splits, &mut left_child_identifiers, old_child_idx)
@@ -73,14 +75,13 @@ impl InteriorNode {
       );
     }
 
-    // Use the BTree class to create new interior nodes for us. TODO:
-    // This will someday be the responsibility of some kind of
-    // storage-engine.
+    // Use the BTree class to create new interior nodes for us.
     let new_left_identifier = btree
       .store_new_interior_node(left_splits, left_child_identifiers);
     let new_right_identifier = btree
       .store_new_interior_node(right_splits, right_child_identifiers);
 
+    // Return opaque type to user so they can propagate split upward.
     InsertionResult::DidInsertWithSplit(SplitInfo {
       old_identifier: self.identifier.clone(),
       new_left_identifier,

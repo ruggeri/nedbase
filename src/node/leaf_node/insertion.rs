@@ -38,7 +38,7 @@ impl LeafNode {
     let mut right_keys =
       self.keys[(self.max_key_capacity / 2)..].to_vec();
 
-    // We choose a new median. TODO: should this be chosen randomly?
+    // We choose a new median.
     let new_median = left_keys
       .last()
       .expect("Just split node must have keys")
@@ -63,9 +63,7 @@ impl LeafNode {
       keys.insert(insertion_idx, key_to_insert);
     }
 
-    // Use the BTree class to create new leaf nodes for us. TODO: This
-    // will someday be the responsibility of some kind of
-    // storage-engine.
+    // Use the BTree class to create new leaf nodes for us.
     let new_left_identifier = btree.store_new_leaf_node(left_keys);
     let new_right_identifier = btree.store_new_leaf_node(right_keys);
 

@@ -2,6 +2,9 @@ use node::Node;
 use node::{util::search_sorted_strings_for_str, SplitInfo};
 
 pub struct InteriorNode {
+  // These fields are public in the `interior_node` module, as other
+  // methods of InteriorNode will need them and are defined in sibbling
+  // modules.
   pub(super) identifier: String,
   // The rule is that all keys such that `target_key <= keys[idx]` live
   // in child `idx`.
@@ -28,8 +31,7 @@ impl InteriorNode {
     }
   }
 
-  // TODO: This method feels a little odd.
-  pub fn new_root(
+  pub fn new_root_from_split_info(
     identifier: String,
     split_info: SplitInfo,
     max_key_capacity: usize,
@@ -52,13 +54,13 @@ impl InteriorNode {
     }
 
     !Node::is_deficient_size(
-      self.splits.len() - 1,
+      self.num_split_keys() - 1,
       self.max_key_capacity,
     )
   }
 
   pub fn can_grow_without_split(&self) -> bool {
-    self.splits.len() < self.max_key_capacity
+    self.num_split_keys() < self.max_key_capacity
   }
 
   pub fn child_identifier_by_key(&self, key: &str) -> &str {
@@ -86,11 +88,18 @@ impl InteriorNode {
   }
 
   pub fn is_deficient(&self) -> bool {
-    Node::is_deficient_size(self.splits.len(), self.max_key_capacity)
+    Node::is_deficient_size(
+      self.num_split_keys(),
+      self.max_key_capacity,
+    )
   }
 
   pub fn num_children(&self) -> usize {
     self.child_identifiers.len()
+  }
+
+  pub fn num_split_keys(&self) -> usize {
+    self.splits.len()
   }
 
   pub fn sibbling_identifiers_for_idx(

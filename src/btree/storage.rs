@@ -64,7 +64,7 @@ impl BTree {
     let identifier = BTree::get_new_identifier();
 
     // Create the node.
-    let node = InteriorNode::new_root(
+    let node = InteriorNode::new_root_from_split_info(
       identifier.clone(),
       split_info,
       self.max_key_capacity,
