@@ -5,9 +5,9 @@ pub struct ReadGuardPath {
 }
 
 #[allow(
-  len_without_is_empty,
-  new_without_default,
-  new_without_default_derive
+  clippy::len_without_is_empty,
+  clippy::new_without_default,
+  clippy::new_without_default_derive
 )]
 impl ReadGuardPath {
   pub fn new() -> ReadGuardPath {

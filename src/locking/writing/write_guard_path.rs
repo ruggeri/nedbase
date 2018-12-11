@@ -4,7 +4,7 @@ pub struct WriteGuardPath {
   write_guards: Vec<WriteGuard>,
 }
 
-#[allow(new_without_default, new_without_default_derive)]
+#[allow(clippy::new_without_default, clippy::new_without_default_derive)]
 impl WriteGuardPath {
   pub fn new() -> WriteGuardPath {
     WriteGuardPath {
