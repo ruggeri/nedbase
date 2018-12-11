@@ -8,42 +8,11 @@ const MAX_KEYS_PER_NODE: usize = 1024;
 const NUM_INSERTIONS_PER_THREAD: u32 = 10_000;
 const NUM_THREADS: u32 = 32;
 
-struct PanicChecker {}
-
-impl Drop for PanicChecker {
-  fn drop(&mut self) {
-    if ::std::thread::panicking() {
-      println!("SOMEONE HAS PANICKED?");
-    } else {
-      // println!("thread has completed")
-    }
-  }
-}
-
-fn perform_insertions(btree: &Arc<BTree>) {
-  let panic_checker = PanicChecker {};
-
-  let mut insertions = vec![];
-  for _ in 0..NUM_INSERTIONS_PER_THREAD {
-    let insertion = BTree::get_new_identifier();
-    BTree::optimistic_insert(btree, &insertion);
-    insertions.push(insertion.clone());
-  }
-
-  for insertion in insertions {
-    if !BTree::contains_key(btree, &insertion) {
-      println!("Dropped key: {}", insertion);
-      continue;
-    }
-
-    BTree::delete(btree, &insertion);
-  }
-}
-
 fn main() {
   let btree = Arc::new(BTree::new(MAX_KEYS_PER_NODE));
-  let mut join_handles = vec![];
 
+  // Spawn a bunch of threads to hammer the BTree.
+  let mut join_handles = vec![];
   for _ in 0..NUM_THREADS {
     join_handles.push({
       let btree = Arc::clone(&btree);
@@ -51,7 +20,30 @@ fn main() {
     });
   }
 
+  // Wait for them to all finish.
   for handle in join_handles {
-    handle.join().expect("no threads should have problems");
+    handle.join().expect("no threads should panic");
+  }
+}
+
+// A thread's work.
+fn perform_insertions(btree: &Arc<BTree>) {
+  // Make lots and lots of insertions.
+  let mut insertions = vec![];
+  for _ in 0..NUM_INSERTIONS_PER_THREAD {
+    let insertion = BTree::get_new_identifier();
+    BTree::optimistic_insert(btree, &insertion);
+    insertions.push(insertion.clone());
+  }
+
+  // Next, check that we can properly find what we have added.
+  for insertion in insertions {
+    if !BTree::contains_key(btree, &insertion) {
+      println!("Dropped key: {}", insertion);
+      continue;
+    }
+
+    // And interleave deletions.
+    BTree::delete(btree, &insertion);
   }
 }
