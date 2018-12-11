@@ -9,6 +9,7 @@ impl InteriorNode {
     node1: &mut Node,
     node2: &mut Node,
   ) {
+    // Sort out which node is left and which is right.
     let idx1 = self
       .child_identifiers
       .iter()
@@ -27,6 +28,7 @@ impl InteriorNode {
       (idx2, node2, node1)
     };
 
+    // Now perform the merging/rotating.
     Node::merge_or_rotate_sibblings(
       btree, self, left_node, right_node, left_idx,
     );
