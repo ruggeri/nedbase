@@ -29,7 +29,9 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
   loop {
     let current_node_guard = {
       let prev_node_write_guard = write_guards
-        .peek_deepest_lock()
+        .peek_deepest_lock(
+          "since we break at LeafNode, should not run out of locks",
+        )
         .unwrap_node_write_guard_ref(
           "final write guard in path should always be for a node",
         );

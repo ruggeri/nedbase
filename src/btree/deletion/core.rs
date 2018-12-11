@@ -59,7 +59,7 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
         let root_identifier_guard =
           write_set.get_root_identifier_guard_mut_ref();
         **root_identifier_guard = new_root_identifier;
-        return
+        return;
       }
 
       UnderflowAction::MergeWithSibbling {

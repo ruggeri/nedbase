@@ -16,11 +16,8 @@ impl WriteGuardPath {
     self.write_guards.clear();
   }
 
-  pub fn peek_deepest_lock(&self) -> &WriteGuard {
-    self
-      .write_guards
-      .last()
-      .expect("expected to hold at least one write guard")
+  pub fn peek_deepest_lock(&self, msg: &'static str) -> &WriteGuard {
+    self.write_guards.last().expect(msg)
   }
 
   pub fn pop(&mut self, msg: &'static str) -> WriteGuard {

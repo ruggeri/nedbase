@@ -105,7 +105,9 @@ fn maybe_acquire_write_guard_path(
   loop {
     let child_guard = {
       let last_node_guard = write_guards
-        .peek_deepest_lock()
+        .peek_deepest_lock(
+          "since we break at LeafNode, should not run out of locks",
+        )
         .unwrap_node_write_guard_ref(
           "we should have acquired a node write guard here",
         );

@@ -24,19 +24,12 @@ impl ReadGuardPath {
     self.read_guards.len()
   }
 
-  pub fn peek_deepest_lock(&self) -> &ReadGuard {
-    self
-      .read_guards
-      .last()
-      .expect("expected to hold at least one read guard")
+  pub fn peek_deepest_lock(&self, msg: &'static str) -> &ReadGuard {
+    self.read_guards.last().expect(msg)
   }
 
-  pub fn peek_head_lock(&self) -> &ReadGuard {
-    self
-      .read_guards
-      .get(0)
-      .as_ref()
-      .expect("expected to hold at least one read guard")
+  pub fn peek_head_lock(&self, msg: &'static str) -> &ReadGuard {
+    self.read_guards.get(0).as_ref().expect(msg)
   }
 
   pub fn pop(&mut self, msg: &'static str) -> ReadGuard {

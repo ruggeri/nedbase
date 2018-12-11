@@ -30,8 +30,11 @@ where
   // Now descend, taking read locks hand-over-hand.
   loop {
     let current_node_guard = {
-      let node_read_guard =
-        read_guards.peek_deepest_lock().unwrap_node_read_guard_ref(
+      let node_read_guard = read_guards
+        .peek_deepest_lock(
+          "since we break at LeafNode, should not run out of locks",
+        )
+        .unwrap_node_read_guard_ref(
           "final read guard in path should always be for a node",
         );
 
