@@ -7,7 +7,11 @@ use std::sync::Arc;
 
 const IDENTIFIER_LENGTH: usize = 8;
 
+// TODO: Everything here is backward! There should only be a store_node
+// method. Everything else should be handled elsewhere!
 impl BTree {
+  // Selects an identifier for a node. Relies on being sufficiently
+  // random for no collision.
   pub fn get_new_identifier() -> String {
     let mut rng = thread_rng();
     let chars: String = iter::repeat(())
@@ -18,6 +22,7 @@ impl BTree {
     chars
   }
 
+  // Creates and stores a new InteriorNode.
   pub fn store_new_interior_node(
     &self,
     splits: Vec<String>,
@@ -36,7 +41,7 @@ impl BTree {
     // Upcast and put it into Arc.
     let node = Arc::new(RwLock::new(node.upcast()));
 
-    // Store the node.
+    // Store the node in the map.
     self.store_node(identifier.clone(), node);
 
     identifier
@@ -53,7 +58,7 @@ impl BTree {
     // Upcast and put it into Arc.
     let node = Arc::new(RwLock::new(node.upcast()));
 
-    // Store the node.
+    // Store the node in the map.
     self.store_node(identifier.clone(), node);
 
     identifier

@@ -30,6 +30,8 @@ where
   // Now descend, taking read locks hand-over-hand.
   loop {
     let current_node_guard = {
+      // Look at the end of our path. Is it a leaf node? Then we can
+      // break and wrap things up.
       let node_read_guard = read_guards
         .peek_deepest_lock(
           "since we break at LeafNode, should not run out of locks",
@@ -42,6 +44,7 @@ where
         break;
       }
 
+      // Otherwise we must continue to descend.
       node_read_guard
         .unwrap_interior_node_ref(
           "should be descending through InteriorNode",
@@ -57,15 +60,17 @@ where
     // reacquire a write lock.
     //
     // Holding a read lock on its parent means that the target of the
-    // write lock is still where the value should live.
+    // write lock will still be where the value should live.
     if stability_check(current_node_guard.node()) {
+      // See how I shuffle the parent guard? Ugh.
       let last_guard =
         read_guards.pop("should never run out of read locks");
       read_guards.clear();
       read_guards.push(last_guard);
     }
 
-    // Regardless, we will continue to hold this lock.
+    // Regardless whether we have encountered a stable node, we will
+    // continue to hold this lock.
     read_guards.push(current_node_guard.upcast());
   }
 

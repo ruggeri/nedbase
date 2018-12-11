@@ -20,7 +20,7 @@ impl BTree {
 
     loop {
       if current_node_guard.is_leaf_node() {
-        break;
+        return current_node_guard;
       }
 
       // Notice how I do the hand-over-hand locking here. This happens
@@ -34,7 +34,5 @@ impl BTree {
         NodeReadGuard::acquire(btree, child_identifier)
       };
     }
-
-    current_node_guard
   }
 }

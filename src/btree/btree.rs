@@ -5,9 +5,12 @@ use std::sync::Arc;
 
 type IdentifierToNodeArcLockMap = HashMap<String, Arc<RwLock<Node>>>;
 pub struct BTree {
+  // Keeps track of which node is the root node.
   pub(in btree) root_identifier_lock: RwLock<String>,
+  // Associates node identifiers with the node.
   pub(in btree) identifier_to_node_arc_lock_map:
     RwLock<IdentifierToNodeArcLockMap>,
+  // Used when creating new nodes.
   pub(in btree) max_key_capacity: usize,
 }
 
