@@ -38,8 +38,6 @@ fn perform_insertions(btree: &Arc<BTree>) {
 
     BTree::delete(btree, &insertion);
   }
-
-  nedbase::util::_thread_log("thread_terminated");
 }
 
 fn main() {
