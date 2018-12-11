@@ -9,7 +9,7 @@ impl LeafNode {
   //
   // TODO: This feels weird because of the asymetry with
   // insertion/splitting. Even then, the caller had to handle a split,
-  // though...
+  // though. The difference is that insertion gave an opaque type...
   pub fn delete(&mut self, key_to_delete: &str) -> DeletionResult {
     match search_sorted_strings_for_str(&self.keys, key_to_delete) {
       Err(_) => DeletionResult::KeyWasNotPresent,
