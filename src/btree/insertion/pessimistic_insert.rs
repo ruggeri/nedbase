@@ -57,15 +57,15 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
     write_guards.push(current_node_guard.upcast());
   }
 
-  // Perform the insert at the leaf.
+  // After descending all the way, perform the insert at the leaf.
   let mut insertion_result = write_guards
     .pop("should have acquired at least one write guard for insertion")
     .unwrap_node_write_guard("should be inserting at a node")
     .unwrap_leaf_node_mut_ref("insertion should happen at leaf node")
     .insert(btree, String::from(insert_key));
 
-  // For as long as we are splitting, insert the split nodes into their
-  // parent.
+  // Bubble up. For as long as we are splitting children, insert the
+  // split nodes into their parent.
   while let InsertionResult::DidInsertWithSplit(child_split_info) =
     insertion_result
   {
@@ -73,11 +73,21 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
       .pop("should not run out of write guards while bubbling splits");
 
     match last_write_guard {
+      // Typical scenario: a child was split. We must update its
+      // parent.
+      WriteGuard::NodeWriteGuard(mut node_guard) => {
+        insertion_result = node_guard
+          .unwrap_interior_node_mut_ref(
+            "parents of split nodes expected to be interior nodes",
+          )
+          .handle_split(btree, child_split_info);
+      }
+
+      // If we split all the way to the top, we have to create a new
+      // root node.
       WriteGuard::RootIdentifierWriteGuard(
         mut root_identifier_guard,
       ) => {
-        // We have split all the way to the top!
-
         // First, create the new root node.
         let new_root_identifier =
           BTree::store_new_root_node(btree, child_split_info);
@@ -86,14 +96,6 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
         *root_identifier_guard = new_root_identifier;
 
         break;
-      }
-
-      WriteGuard::NodeWriteGuard(mut node_guard) => {
-        insertion_result = node_guard
-          .unwrap_interior_node_mut_ref(
-            "parents of split nodes expected to be interior nodes",
-          )
-          .handle_split(btree, child_split_info);
       }
     };
   }
