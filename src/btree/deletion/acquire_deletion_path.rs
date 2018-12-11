@@ -80,7 +80,8 @@ fn begin_deletion_path(
     }
 
     // Typically, the deepest stable node is not the root. In which
-    // case, we descend once from its parent to write lock it.
+    // case, we have read locked its parent. Here we take the write lock
+    // on the child, releasing the read lock on the parent.
     ReadGuard::NodeReadGuard(parent_node_guard) => {
       let child_identifier = parent_node_guard
         .unwrap_interior_node_ref("a parent must be an interior node")
@@ -113,6 +114,7 @@ fn extend_deletion_path(
   write_set: &mut WriteSet,
   key_to_delete: &str,
 ) {
+  // Get identifiers of parent/child/sibbling.
   let (
     parent_node_identifier,
     child_node_identifier,
@@ -151,7 +153,7 @@ fn extend_deletion_path(
   let merge_sibbling_identifier =
     acquire_sibbling_node(btree, write_set, sibbling_node_identifiers);
 
-  // Last: push entry onto the deletion path.
+  // Create a DeletionPathEntry saying to do a merge.
   let path_entry = DeletionPathEntry::UnstableNode {
     underflow_action: UnderflowAction::MergeWithSibbling {
       parent_node_identifier,
@@ -160,6 +162,8 @@ fn extend_deletion_path(
 
     path_node_identifier: child_node_identifier,
   };
+
+  // And store it in on the path.
   path.push(path_entry);
 }
 
@@ -173,6 +177,7 @@ fn acquire_sibbling_node(
       panic!("non-root node should never have no sibblings")
     }
 
+    // If there is only one sibbling, we don't get a choice.
     (Some(sibbling_node_identifier), None)
     | (None, Some(sibbling_node_identifier)) => {
       write_set.acquire_node_guard(btree, &sibbling_node_identifier);
@@ -183,9 +188,11 @@ fn acquire_sibbling_node(
       Some(left_sibbling_node_identifier),
       Some(right_sibbling_node_identifier),
     ) => {
-      // Put in a scope because I don't want to retain the reference to
-      // the guard when I do operations to acquire the right sibbling
-      // below.
+      // I put this in a scope because I don't want to retain the
+      // reference to the guard when I do operations to acquire the
+      // right sibbling below.
+      //
+      // Prefer rotating from the left node. Probably fine.
       {
         let left_sibbling_guard = write_set
           .acquire_node_guard(btree, &left_sibbling_node_identifier);
@@ -195,12 +202,14 @@ fn acquire_sibbling_node(
         }
       }
 
-      // What if right sibbling is also empty? You'll preferentially
-      // merge with right sibbling.
+      // Don't forget to release the guard in the write set.
       //
-      // I doubt randomization would help. You will take values from
-      // left until you can't anymore, and THEN you'll take from
-      // right. So it doesn't matter. You won't merge until you must.
+      // TODO: This is the first place I think I can't rely on RAII.
+      // Hmm...
+      write_set.drop_node_guard(&left_sibbling_node_identifier);
+
+      // If you can't rotate from the left sibbling, try using the right
+      // sibbling. Prefer merging from the right.
       write_set.drop_node_guard(&left_sibbling_node_identifier);
       write_set
         .acquire_node_guard(btree, &right_sibbling_node_identifier);
