@@ -9,14 +9,14 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
     acquire_deletion_path(btree, key_to_delete);
 
   deletion_path
-    .last_node_mut(&mut write_set)
+    .last_node_mut_ref(&mut write_set)
     .unwrap_leaf_node_mut_ref("deletion must happen at a leaf node")
     .delete(key_to_delete);
 
   loop {
     // Stop bubbling if we're not deficient and don't need merging
     // anymore.
-    if !deletion_path.last_node(&write_set).is_deficient() {
+    if !deletion_path.last_node_ref(&write_set).is_deficient() {
       break;
     }
 

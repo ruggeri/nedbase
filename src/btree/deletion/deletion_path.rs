@@ -63,7 +63,7 @@ impl DeletionPath {
 
   // The last identifier that was added to this path.
   pub fn last_identifier_of_path(&self) -> &str {
-    let last_entry = self.last_path_entry();
+    let last_entry = self.last_path_entry_ref();
     match last_entry {
       DeletionPathEntry::TopStableNode { node_identifier } => {
         &node_identifier
@@ -77,7 +77,7 @@ impl DeletionPath {
   }
 
   // The last node that was added to this path.
-  pub fn last_node<'a>(
+  pub fn last_node_ref<'a>(
     &self,
     write_set: &'a WriteSet,
   ) -> &'a NodeWriteGuard {
@@ -86,7 +86,7 @@ impl DeletionPath {
   }
 
   // The last node that was added to this path.
-  pub fn last_node_mut<'a>(
+  pub fn last_node_mut_ref<'a>(
     &self,
     write_set: &'a mut WriteSet,
   ) -> &'a mut NodeWriteGuard {
@@ -95,7 +95,7 @@ impl DeletionPath {
   }
 
   // The last entry that was added to this path.
-  pub fn last_path_entry(&self) -> &DeletionPathEntry {
+  pub fn last_path_entry_ref(&self) -> &DeletionPathEntry {
     self
       .entries
       .last()

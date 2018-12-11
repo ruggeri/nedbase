@@ -30,7 +30,7 @@ pub fn acquire_deletion_path(
 
   loop {
     // We descend until we hit a leaf, acquiring nodes along the way.
-    if deletion_path.last_node(&write_set).is_leaf_node() {
+    if deletion_path.last_node_ref(&write_set).is_leaf_node() {
       break;
     }
 
@@ -97,7 +97,7 @@ fn begin_deletion_path(
 
   // We must check: did the target node go unstable on us? If that
   // happened, we will have to start everything again...
-  let last_node_of_path = deletion_path.last_node(write_set);
+  let last_node_of_path = deletion_path.last_node_ref(write_set);
 
   if !last_node_of_path.can_delete_without_becoming_deficient() {
     None
@@ -122,7 +122,7 @@ fn extend_deletion_path(
   ) = {
     // Who is the parent?
     let parent_node = path
-      .last_node(write_set)
+      .last_node_ref(write_set)
       .unwrap_interior_node_ref("must not descend through leaves");
     let parent_node_identifier = String::from(parent_node.identifier());
 
