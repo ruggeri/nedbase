@@ -1,26 +1,8 @@
-use super::WriteSet;
+use super::DeletionPathEntry;
+use btree::deletion::WriteSet;
 use btree::BTree;
 use locking::NodeWriteGuard;
 use std::sync::Arc;
-
-pub enum UnderflowAction {
-  UpdateRootIdentifier,
-  MergeWithSibbling {
-    parent_node_identifier: String,
-    sibbling_node_identifier: String,
-  },
-}
-
-pub enum DeletionPathEntry {
-  TopStableNode {
-    node_identifier: String,
-  },
-
-  UnstableNode {
-    underflow_action: UnderflowAction,
-    path_node_identifier: String,
-  },
-}
 
 pub struct DeletionPath {
   entries: Vec<DeletionPathEntry>,
@@ -33,16 +15,17 @@ impl DeletionPath {
     btree: &Arc<BTree>,
     write_set: &mut WriteSet,
   ) -> DeletionPath {
-    let root_identifier = String::from(
+    let root_node_identifier = String::from(
       write_set.acquire_root_identifier(btree).as_str_ref(),
     );
-    write_set.acquire_node_guard(btree, &root_identifier);
+    write_set.acquire_node_guard(btree, &root_node_identifier);
 
     DeletionPath {
-      entries: vec![DeletionPathEntry::UnstableNode {
-        underflow_action: UnderflowAction::UpdateRootIdentifier,
-        path_node_identifier: root_identifier,
-      }],
+      entries: vec![
+        DeletionPathEntry::new_update_root_identifier_entry(
+          root_node_identifier,
+        ),
+      ],
     }
   }
 
@@ -55,25 +38,16 @@ impl DeletionPath {
     write_set.acquire_node_guard(btree, identifier);
 
     DeletionPath {
-      entries: vec![DeletionPathEntry::TopStableNode {
-        node_identifier: String::from(identifier),
-      }],
+      entries: vec![DeletionPathEntry::new_top_stable_node_entry(
+        String::from(identifier),
+      )],
     }
   }
 
   // The last identifier that was added to this path.
   pub fn last_identifier_of_path(&self) -> &str {
     let last_entry = self.last_path_entry_ref();
-    match last_entry {
-      DeletionPathEntry::TopStableNode { node_identifier } => {
-        &node_identifier
-      }
-
-      DeletionPathEntry::UnstableNode {
-        path_node_identifier,
-        ..
-      } => &path_node_identifier,
-    }
+    last_entry.path_node_identifier()
   }
 
   // The last node that was added to this path.

@@ -1,6 +1,6 @@
-use super::{
-  acquire_parent_of_deepest_stable_node, DeletionPath,
-  DeletionPathEntry, UnderflowAction, WriteSet,
+use super::{DeletionPath, DeletionPathEntry};
+use btree::deletion::{
+  acquire_parent_of_deepest_stable_node, WriteSet,
 };
 use btree::BTree;
 use locking::ReadGuard;
@@ -154,14 +154,11 @@ fn extend_deletion_path(
     acquire_sibbling_node(btree, write_set, sibbling_node_identifiers);
 
   // Create a DeletionPathEntry saying to do a merge.
-  let path_entry = DeletionPathEntry::UnstableNode {
-    underflow_action: UnderflowAction::MergeWithSibbling {
-      parent_node_identifier,
-      sibbling_node_identifier: merge_sibbling_identifier,
-    },
-
-    path_node_identifier: child_node_identifier,
-  };
+  let path_entry = DeletionPathEntry::new_merge_with_sibbling_entry(
+    parent_node_identifier,
+    child_node_identifier,
+    merge_sibbling_identifier,
+  );
 
   // And store it in on the path.
   path.push(path_entry);
