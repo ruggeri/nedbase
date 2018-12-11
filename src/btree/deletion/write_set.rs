@@ -70,7 +70,7 @@ impl WriteSet {
     // though). I could also *remove* a lock (adding it back later), but
     // that costs hashing...
     //
-    // TODO: Consider alternatives.
+    // TODO: Consider alternatives for get_node_mut_ref.
     unsafe {
       let node_guard = self
         .map

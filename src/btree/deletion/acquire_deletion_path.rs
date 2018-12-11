@@ -1,6 +1,6 @@
 use super::{
-  acquire_parent_of_stable_node, DeletionPath, DeletionPathEntry,
-  UnderflowAction, WriteSet,
+  acquire_parent_of_deepest_stable_node, DeletionPath,
+  DeletionPathEntry, UnderflowAction, WriteSet,
 };
 use btree::BTree;
 use locking::ReadGuard;
@@ -54,7 +54,7 @@ fn begin_deletion_path(
   // The first step is to acquire a read guard of the parent above our
   // target stable node.
   let parent_guard =
-    match acquire_parent_of_stable_node(btree, key_to_delete) {
+    match acquire_parent_of_deepest_stable_node(btree, key_to_delete) {
       None => {
         // However, the root itself may be unstable for deletion. In that
         // case, we may be merging a new root!

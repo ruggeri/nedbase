@@ -2,9 +2,10 @@ use btree::{util, BTree};
 use locking::ReadGuard;
 use std::sync::Arc;
 
-// Finds highest lock target that may need to be mutated by an
-// insertion.
-pub fn acquire_parent_of_stable_node(
+// Acquires the parent of the deepest stable node. The deepest stable
+// parent is the highest node that may need to be modified by a
+// deletion.
+pub fn acquire_parent_of_deepest_stable_node(
   btree: &Arc<BTree>,
   key_to_delete: &str,
 ) -> Option<ReadGuard> {
