@@ -75,11 +75,11 @@ impl InteriorNode {
       );
     }
 
-    // Use the BTree class to create new interior nodes for us.
-    let new_left_identifier = btree
-      .store_new_interior_node(left_splits, left_child_identifiers);
-    let new_right_identifier = btree
-      .store_new_interior_node(right_splits, right_child_identifiers);
+    // Create and store new interior nodes.
+    let new_left_identifier =
+      InteriorNode::store(btree, left_splits, left_child_identifiers);
+    let new_right_identifier =
+      InteriorNode::store(btree, right_splits, right_child_identifiers);
 
     // Return opaque type to user so they can propagate split upward.
     InsertionResult::DidInsertWithSplit(SplitInfo {

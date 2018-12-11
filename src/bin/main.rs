@@ -31,7 +31,7 @@ fn perform_insertions(btree: &Arc<BTree>) {
   // Make lots and lots of insertions.
   let mut insertions = vec![];
   for _ in 0..NUM_INSERTIONS_PER_THREAD {
-    let insertion = BTree::get_new_identifier();
+    let insertion = btree.get_new_identifier();
     BTree::optimistic_insert(btree, &insertion);
     insertions.push(insertion.clone());
   }

@@ -16,24 +16,21 @@ pub struct BTree {
 
 impl BTree {
   pub fn new(max_key_capacity: usize) -> BTree {
-    let root_identifier: String = BTree::get_new_identifier();
-    let root_node =
-      LeafNode::new(root_identifier.clone(), vec![], max_key_capacity)
-        .upcast();
-
-    let mut identifier_to_node_arc_lock_map = HashMap::new();
-    identifier_to_node_arc_lock_map.insert(
-      root_identifier.clone(),
-      Arc::new(RwLock::new(root_node)),
-    );
-
-    BTree {
-      root_identifier_lock: RwLock::new(root_identifier),
-      identifier_to_node_arc_lock_map: RwLock::new(
-        identifier_to_node_arc_lock_map,
-      ),
+    // First we make a BTree with a bogus root.
+    let btree = BTree {
+      // Default root identifier is "" which is bogus.
+      root_identifier_lock: RwLock::default(),
+      identifier_to_node_arc_lock_map: RwLock::default(),
       max_key_capacity,
-    }
+    };
+
+    // Then we do create an empty leaf node for the root.
+    let root_identifier = LeafNode::store(&btree, vec![]);
+
+    // Then we store this for the root node identifier.
+    *(btree.root_identifier_lock.write()) = root_identifier;
+
+    btree
   }
 
   pub fn get_node_arc_lock(
@@ -49,6 +46,10 @@ impl BTree {
       Some(node_lock) => Arc::clone(node_lock),
       None => panic!("Eventually should fetch from disk."),
     }
+  }
+
+  pub fn max_key_capacity(&self) -> usize {
+    self.max_key_capacity
   }
 
   pub fn root_identifier_lock(&self) -> &RwLock<String> {

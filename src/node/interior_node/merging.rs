@@ -28,7 +28,7 @@ impl InteriorNode {
     };
 
     // Merges two nodes immutably, creating a new node.
-    let new_identifier = match (left_node, right_node) {
+    let new_node_identifier = match (left_node, right_node) {
       (Node::LeafNode(left_node), Node::LeafNode(right_node)) => {
         LeafNode::merge_sibblings(btree, left_node, right_node)
       }
@@ -47,7 +47,7 @@ impl InteriorNode {
     // right identifier.
     self.child_identifiers.remove(right_idx);
     // And update the left one.
-    self.child_identifiers[left_idx] = new_identifier;
+    self.child_identifiers[left_idx] = new_node_identifier;
   }
 
   pub fn merge_sibblings(
@@ -65,6 +65,6 @@ impl InteriorNode {
       .extend(right_node.child_identifiers.iter().cloned());
 
     // Create the new node.
-    btree.store_new_interior_node(splits, child_identifiers)
+    InteriorNode::store(btree, splits, child_identifiers)
   }
 }

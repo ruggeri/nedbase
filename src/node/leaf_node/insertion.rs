@@ -63,9 +63,9 @@ impl LeafNode {
       keys.insert(insertion_idx, key_to_insert);
     }
 
-    // Use the BTree class to create new leaf nodes for us.
-    let new_left_identifier = btree.store_new_leaf_node(left_keys);
-    let new_right_identifier = btree.store_new_leaf_node(right_keys);
+    // Create and store new leaf nodes.
+    let new_left_identifier = LeafNode::store(btree, left_keys);
+    let new_right_identifier = LeafNode::store(btree, right_keys);
 
     InsertionResult::DidInsertWithSplit(SplitInfo {
       old_identifier: self.identifier.clone(),

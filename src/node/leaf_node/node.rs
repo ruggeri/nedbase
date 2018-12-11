@@ -1,3 +1,4 @@
+use btree::BTree;
 use node::util::search_sorted_strings_for_str;
 use node::Node;
 
@@ -8,16 +9,17 @@ pub struct LeafNode {
 }
 
 impl LeafNode {
-  pub fn new(
-    identifier: String,
-    keys: Vec<String>,
-    max_key_capacity: usize,
-  ) -> LeafNode {
-    LeafNode {
-      identifier,
+  pub fn store(btree: &BTree, keys: Vec<String>) -> String {
+    let identifier = btree.get_new_identifier();
+    let node = LeafNode {
+      identifier: identifier.clone(),
       keys,
-      max_key_capacity,
-    }
+      max_key_capacity: btree.max_key_capacity(),
+    };
+
+    btree.store_node(node.upcast());
+
+    identifier
   }
 
   pub fn can_delete_without_becoming_deficient(&self) -> bool {

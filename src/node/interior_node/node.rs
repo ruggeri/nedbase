@@ -1,3 +1,4 @@
+use btree::BTree;
 use node::Node;
 use node::{util::search_sorted_strings_for_str, SplitInfo};
 
@@ -17,34 +18,43 @@ pub struct InteriorNode {
 }
 
 impl InteriorNode {
-  pub fn new(
-    identifier: String,
+  pub fn store(
+    btree: &BTree,
     splits: Vec<String>,
     child_identifiers: Vec<String>,
-    max_key_capacity: usize,
-  ) -> InteriorNode {
-    InteriorNode {
-      identifier,
+  ) -> String {
+    let identifier = btree.get_new_identifier();
+    let node = InteriorNode {
+      identifier: identifier.clone(),
       splits,
       child_identifiers,
-      max_key_capacity,
-    }
+      max_key_capacity: btree.max_key_capacity(),
+    };
+
+    btree.store_node(node.upcast());
+
+    identifier
   }
 
-  pub fn new_root_from_split_info(
-    identifier: String,
+  pub fn store_new_root(
+    btree: &BTree,
     split_info: SplitInfo,
-    max_key_capacity: usize,
-  ) -> InteriorNode {
-    InteriorNode {
-      identifier,
+  ) -> String {
+    let identifier = btree.get_new_identifier();
+
+    let node = InteriorNode {
+      identifier: identifier.clone(),
       splits: vec![split_info.new_median],
       child_identifiers: vec![
         split_info.new_left_identifier,
         split_info.new_right_identifier,
       ],
-      max_key_capacity,
-    }
+      max_key_capacity: btree.max_key_capacity(),
+    };
+
+    btree.store_node(node.upcast());
+
+    identifier
   }
 
   pub fn can_delete_without_becoming_deficient(&self) -> bool {

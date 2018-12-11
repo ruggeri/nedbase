@@ -28,6 +28,6 @@ impl LeafNode {
     let mut keys = left_node.keys.clone();
     keys.extend(right_node.keys.iter().cloned());
 
-    btree.store_new_leaf_node(keys)
+    LeafNode::store(btree, keys)
   }
 }

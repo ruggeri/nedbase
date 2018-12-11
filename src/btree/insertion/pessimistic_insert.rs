@@ -2,7 +2,7 @@ use btree::BTree;
 use locking::{
   NodeWriteGuard, RootIdentifierWriteGuard, WriteGuard, WriteGuardPath,
 };
-use node::InsertionResult;
+use node::{InsertionResult, InteriorNode};
 use std::sync::Arc;
 
 pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
@@ -90,7 +90,7 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
       ) => {
         // First, create the new root node.
         let new_root_identifier =
-          BTree::store_new_root_node(btree, child_split_info);
+          InteriorNode::store_new_root(btree, child_split_info);
 
         // Now update the BTree to use the new root node we created.
         *root_identifier_guard = new_root_identifier;
