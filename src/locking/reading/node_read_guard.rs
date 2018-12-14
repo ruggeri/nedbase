@@ -1,27 +1,37 @@
 use btree::BTree;
 use locking::ReadGuard;
 use node::{InteriorNode, LeafNode, Node};
+use parking_lot::{RwLock, RwLockReadGuard};
+use std::ops::Deref;
+use std::sync::Arc;
 
-rental! {
-  mod rentals {
-    use node::Node;
-    use parking_lot::{RwLock, RwLockReadGuard};
-    use std::sync::Arc;
+pub struct NodeReadGuard {
+  _lock: Arc<RwLock<Node>>,
+  guard: RwLockReadGuard<'static, Node>,
+}
 
-    #[rental(deref_suffix)]
-    pub struct NodeReadGuard {
-      lock: Arc<RwLock<Node>>,
-      guard: RwLockReadGuard<'lock, Node>,
-    }
+impl Deref for NodeReadGuard {
+  type Target = Node;
+
+  fn deref(&self) -> &Node {
+    &self.guard
   }
 }
 
-pub use self::rentals::NodeReadGuard;
-
 impl NodeReadGuard {
   pub fn acquire(btree: &BTree, identifier: &str) -> NodeReadGuard {
-    let lock = btree.get_node_arc_lock(&identifier);
-    NodeReadGuard::new(lock, |lock| lock.read())
+    unsafe {
+      let lock: Arc<RwLock<Node>> = btree.get_node_arc_lock(&identifier);
+
+      let guard: RwLockReadGuard<'static, Node> = std::mem::transmute(
+        lock.read()
+      );
+
+      NodeReadGuard {
+        _lock: lock,
+        guard
+      }
+    }
   }
 
   pub fn is_interior_node(&self) -> bool {
@@ -33,7 +43,7 @@ impl NodeReadGuard {
   }
 
   pub fn node(&self) -> &Node {
-    &(*self)
+    self
   }
 
   pub fn unwrap_interior_node_ref(

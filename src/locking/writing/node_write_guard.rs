@@ -1,28 +1,43 @@
 use btree::BTree;
 use locking::WriteGuard;
 use node::{InteriorNode, Node};
+use parking_lot::{RwLock, RwLockWriteGuard};
+use std::ops::{Deref, DerefMut};
+use std::sync::Arc;
 
-rental! {
-  mod rentals {
-    use node::Node;
-    use parking_lot::{RwLock, RwLockWriteGuard};
-    use std::sync::Arc;
+pub struct NodeWriteGuard {
+  _lock: Arc<RwLock<Node>>,
+  guard: RwLockWriteGuard<'static, Node>,
+}
 
-    #[rental(deref_mut_suffix)]
-    pub struct NodeWriteGuard {
-        lock: Arc<RwLock<Node>>,
-        guard: RwLockWriteGuard<'lock, Node>,
-    }
+impl Deref for NodeWriteGuard {
+  type Target = Node;
+
+  fn deref(&self) -> &Node {
+    &self.guard
   }
 }
 
-pub use self::rentals::NodeWriteGuard;
+impl DerefMut for NodeWriteGuard {
+  fn deref_mut(&mut self) -> &mut Node {
+    &mut self.guard
+  }
+}
 
 impl NodeWriteGuard {
   pub fn acquire(btree: &BTree, identifier: &str) -> NodeWriteGuard {
-    let lock = btree.get_node_arc_lock(&identifier);
+    unsafe {
+      let lock: Arc<RwLock<Node>> = btree.get_node_arc_lock(&identifier);
 
-    NodeWriteGuard::new(lock, |lock| lock.write())
+      let guard: RwLockWriteGuard<'static, Node> = std::mem::transmute(
+        lock.write()
+      );
+
+      NodeWriteGuard {
+        _lock: lock,
+        guard
+      }
+    }
   }
 
   pub fn node(&self) -> &Node {

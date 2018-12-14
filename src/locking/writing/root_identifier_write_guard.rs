@@ -1,30 +1,42 @@
 use btree::BTree;
 use locking::WriteGuard;
+use parking_lot::RwLockWriteGuard;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
-rental! {
-  mod rentals {
-    use btree::BTree;
-    use parking_lot::RwLockWriteGuard;
-    use std::sync::Arc;
+pub struct RootIdentifierWriteGuard {
+  _btree: Arc<BTree>,
+  guard: RwLockWriteGuard<'static, String>,
+}
 
-    #[rental(deref_mut_suffix)]
-    pub struct RootIdentifierWriteGuard {
-      btree: Arc<BTree>,
-      guard: RwLockWriteGuard<'btree, String>,
-    }
+impl Deref for RootIdentifierWriteGuard {
+  type Target = String;
+
+  fn deref(&self) -> &String {
+    &self.guard
   }
 }
 
-pub use self::rentals::RootIdentifierWriteGuard;
+impl DerefMut for RootIdentifierWriteGuard {
+  fn deref_mut(&mut self) -> &mut String {
+    &mut self.guard
+  }
+}
 
 impl RootIdentifierWriteGuard {
   pub fn acquire(btree: &Arc<BTree>) -> RootIdentifierWriteGuard {
-    let btree = Arc::clone(btree);
+    unsafe {
+      let lock = btree.root_identifier_lock();
+      let guard: RwLockWriteGuard<'static, String> = std::mem::transmute(
+        lock.write()
+      );
 
-    RootIdentifierWriteGuard::new(btree, |btree| {
-      btree.root_identifier_lock().write()
-    })
+      let btree: Arc<BTree> = Arc::clone(btree);
+      RootIdentifierWriteGuard {
+        _btree: btree,
+        guard
+      }
+    }
   }
 
   pub fn as_str_ref(&self) -> &str {

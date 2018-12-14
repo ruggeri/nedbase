@@ -1,28 +1,36 @@
 use btree::BTree;
 use locking::ReadGuard;
+use parking_lot::RwLockReadGuard;
+use std::ops::Deref;
 use std::sync::Arc;
 
-rental! {
-  mod rentals {
-    use btree::BTree;
-    use parking_lot::RwLockReadGuard;
-    use std::sync::Arc;
+pub struct RootIdentifierReadGuard {
+  _btree: Arc<BTree>,
+  guard: RwLockReadGuard<'static, String>,
+}
 
-    #[rental(deref_suffix)]
-    pub struct RootIdentifierReadGuard {
-      btree: Arc<BTree>,
-      guard: RwLockReadGuard<'btree, String>,
-    }
+impl Deref for RootIdentifierReadGuard {
+  type Target = String;
+
+  fn deref(&self) -> &String {
+    &self.guard
   }
 }
 
-pub use self::rentals::RootIdentifierReadGuard;
-
 impl RootIdentifierReadGuard {
   pub fn acquire(btree: &Arc<BTree>) -> RootIdentifierReadGuard {
-    RootIdentifierReadGuard::new(Arc::clone(btree), |btree| {
-      btree.root_identifier_lock().read()
-    })
+    unsafe {
+      let lock = btree.root_identifier_lock();
+      let guard: RwLockReadGuard<'static, String> = std::mem::transmute(
+        lock.read()
+      );
+
+      let btree: Arc<BTree> = Arc::clone(btree);
+      RootIdentifierReadGuard {
+        _btree: btree,
+        guard
+      }
+    }
   }
 
   pub fn as_str_ref(&self) -> &str {
