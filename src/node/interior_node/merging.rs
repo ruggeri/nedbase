@@ -65,6 +65,7 @@ impl InteriorNode {
   ) {
     // Merge splits
     let mut splits = left_node.splits.clone();
+    splits.push(parent_node.splits[left_idx].clone());
     splits.extend(right_node.splits.iter().cloned());
 
     // Merge child_identifiers
@@ -92,25 +93,25 @@ impl InteriorNode {
       (right_node.num_split_keys() - left_node.num_split_keys()) / 2;
     let num_children_to_move = num_split_keys_to_move;
 
-    // drain is hella fancy. It removes from right_node.keys as it
-    // copies to left_node.keys.
-    let drain = right_node.splits.drain(..num_split_keys_to_move);
-    left_node.splits.extend(drain);
-
-    // Likewise for the children.
+    // First move over the children.
     let drain =
       right_node.child_identifiers.drain(..num_children_to_move);
     left_node.child_identifiers.extend(drain);
 
-    // This effectively rotates the first of right keys up, and the
-    // split key in the parent to the left.
-    ::std::mem::swap(
-      &mut parent_node.splits[left_idx],
-      left_node
-        .splits
-        .last_mut()
-        .expect("every InteriorNode must have at least one split"),
-    );
+    // Now some trickiness. The first child you just moved over is
+    // *greater* than the old parent separator between these sibblings,
+    // but *less* than the first of the right sibbling's split keys. So
+    // we must pull it down.
+    left_node.splits.push(parent_node.splits[left_idx].clone());
+
+    // Then we pull over many split keys from the right.
+    let drain = right_node.splits.drain(..num_split_keys_to_move);
+    left_node.splits.extend(drain);
+
+    // But that moved over one too many! Let's pop it off. It should be
+    // the new parent split key.
+    let new_parent_split_key = left_node.splits.pop().unwrap();
+    parent_node.splits[left_idx] = new_parent_split_key;
   }
 
   pub fn rotate_right_from_sibbling(
@@ -126,33 +127,25 @@ impl InteriorNode {
       (left_node.num_split_keys() - right_node.num_split_keys()) / 2;
     let num_children_to_move = num_split_keys_to_move;
 
-    // Rotating right is a little more annoying...
-    let drain_start_idx =
-      left_node.num_split_keys() - num_split_keys_to_move;
-    let mut new_right_splits: Vec<_> =
-      left_node.splits.drain(drain_start_idx..).collect();
-    new_right_splits.append(&mut right_node.splits);
-    right_node.splits = new_right_splits;
-
-    // Likewise for the children.
+    // First move over the children. (Prepending is kinda gross...)
     let drain_start_idx =
       left_node.num_children() - num_children_to_move;
-    let mut new_right_child_identifiers: Vec<_> = left_node
-      .child_identifiers
-      .drain(drain_start_idx..)
-      .collect();
+    let mut new_right_child_identifiers: Vec<_> =
+      left_node.child_identifiers.drain(drain_start_idx..).collect();
     new_right_child_identifiers
       .append(&mut right_node.child_identifiers);
     right_node.child_identifiers = new_right_child_identifiers;
 
-    // This effectively rotates the first of left keys up, and the
-    // split key in the parent to the left.
-    ::std::mem::swap(
-      &mut parent_node.splits[left_idx],
-      left_node
-        .splits
-        .first_mut()
-        .expect("every InteriorNode must have at least one split"),
-    );
+    // Now to copy over the splits. Notice that I don't copy the split
+    // at left_node.splits[drain_start_idx]. That will become the new
+    // split key in the parent.
+    let drain_start_idx =
+      left_node.num_split_keys() - num_split_keys_to_move;
+    let mut new_right_splits = vec![];
+    new_right_splits.extend(left_node.splits.drain(drain_start_idx + 1..));
+    new_right_splits.push(parent_node.splits[left_idx].clone());
+    new_right_splits.append(&mut right_node.splits);
+    right_node.splits = new_right_splits;
+    parent_node.splits[left_idx] = left_node.splits.pop().unwrap();
   }
 }

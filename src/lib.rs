@@ -4,6 +4,7 @@ extern crate rand;
 extern crate rental;
 
 pub(self) mod btree;
+pub(self) mod constants;
 pub(self) mod locking;
 pub(self) mod node;
 
