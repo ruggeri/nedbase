@@ -1,5 +1,5 @@
 use btree::BTree;
-use locking::{NodeReadGuard, RootIdentifierReadGuard};
+use locking::{LockTarget, NodeReadGuard, RootIdentifierReadGuard};
 use std::sync::Arc;
 
 pub enum ReadGuard {
@@ -8,6 +8,13 @@ pub enum ReadGuard {
 }
 
 impl ReadGuard {
+  pub fn acquire_read_guard(btree: &Arc<BTree>, lock_target: &LockTarget) -> ReadGuard {
+    match lock_target {
+      LockTarget::Node(identifier) => Self::acquire_node_read_guard(btree, identifier),
+      LockTarget::RootIdentifier => Self::acquire_root_identifier_read_guard(btree),
+    }
+  }
+
   pub fn acquire_node_read_guard(
     btree: &Arc<BTree>,
     identifier: &str,
