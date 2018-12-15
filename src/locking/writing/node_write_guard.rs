@@ -1,6 +1,6 @@
 use btree::BTree;
 use locking::WriteGuard;
-use node::{InteriorNode, Node};
+use node::Node;
 use parking_lot::{RwLock, RwLockWriteGuard};
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
@@ -25,7 +25,13 @@ impl DerefMut for NodeWriteGuard {
 }
 
 impl NodeWriteGuard {
-  pub fn acquire(btree: &BTree, identifier: &str) -> NodeWriteGuard {
+  pub(in locking) fn acquire(btree: &BTree, identifier: &str) -> NodeWriteGuard {
+    // This is trickery. `RwLockWriteGuard` wants a lifetime: it doesn't
+    // want to outlive the `RwLock`. But the `RwLock` *cannot* be lost,
+    // because I hold onto it via `Arc`.
+    //
+    // However, Rust won't understand this. Therefore, I resort to this
+    // unsafe code.
     unsafe {
       let lock: Arc<RwLock<Node>> = btree.get_node_arc_lock(&identifier);
 
@@ -40,24 +46,7 @@ impl NodeWriteGuard {
     }
   }
 
-  pub fn node(&self) -> &Node {
-    &(*self)
-  }
-
   pub fn upcast(self) -> WriteGuard {
     WriteGuard::NodeWriteGuard(self)
-  }
-}
-
-// This method is sort-of monkey-patched here because it's really about
-// NodeWriteGuard much more than InteriorNode.
-impl InteriorNode {
-  pub fn acquire_write_guard_for_child_by_key(
-    &self,
-    btree: &BTree,
-    key: &str,
-  ) -> NodeWriteGuard {
-    let child_identifier = self.child_identifier_by_key(key);
-    NodeWriteGuard::acquire(btree, child_identifier)
   }
 }

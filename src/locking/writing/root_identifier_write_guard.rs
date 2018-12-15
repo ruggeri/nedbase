@@ -24,7 +24,13 @@ impl DerefMut for RootIdentifierWriteGuard {
 }
 
 impl RootIdentifierWriteGuard {
-  pub fn acquire(btree: &Arc<BTree>) -> RootIdentifierWriteGuard {
+  // This is trickery. `RwLockWriteGuard` wants a lifetime: it doesn't
+  // want to outlive the `BTree`. But the `BTree` *cannot* be lost,
+  // because I hold onto it via `Arc`.
+  //
+  // However, Rust won't understand this. Therefore, I resort to this
+  // unsafe code.
+  pub(in locking) fn acquire(btree: &Arc<BTree>) -> RootIdentifierWriteGuard {
     unsafe {
       let lock = btree.root_identifier_lock();
       let guard: RwLockWriteGuard<'static, String> = std::mem::transmute(

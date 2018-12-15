@@ -19,7 +19,7 @@ impl Deref for NodeReadGuard {
 }
 
 impl NodeReadGuard {
-  pub fn acquire(btree: &BTree, identifier: &str) -> NodeReadGuard {
+  pub(in locking) fn acquire(btree: &BTree, identifier: &str) -> NodeReadGuard {
     // This is trickery. `RwLockReadGuard` wants a lifetime: it doesn't
     // want to outlive the `RwLock`. But the `RwLock` *cannot* be lost,
     // because I hold onto it via `Arc`.

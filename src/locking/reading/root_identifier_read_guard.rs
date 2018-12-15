@@ -18,7 +18,7 @@ impl Deref for RootIdentifierReadGuard {
 }
 
 impl RootIdentifierReadGuard {
-  pub fn acquire(btree: &Arc<BTree>) -> RootIdentifierReadGuard {
+  pub(in locking) fn acquire(btree: &Arc<BTree>) -> RootIdentifierReadGuard {
     // This is trickery. `RwLockReadGuard` wants a lifetime: it doesn't
     // want to outlive the `BTree`. But the `BTree` *cannot* be lost,
     // because I hold onto it via `Arc`.

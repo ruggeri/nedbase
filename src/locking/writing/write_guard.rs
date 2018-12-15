@@ -8,14 +8,14 @@ pub enum WriteGuard {
 }
 
 impl WriteGuard {
-  pub fn acquire_write_guard(btree: &Arc<BTree>, lock_target: &LockTarget) -> WriteGuard {
+  pub(in locking) fn acquire_write_guard(btree: &Arc<BTree>, lock_target: &LockTarget) -> WriteGuard {
     match lock_target {
       LockTarget::Node(identifier) => Self::acquire_node_write_guard(btree, identifier),
       LockTarget::RootIdentifier => Self::acquire_root_identifier_write_guard(btree),
     }
   }
 
-  pub fn acquire_node_write_guard(
+  pub(in locking) fn acquire_node_write_guard(
     btree: &Arc<BTree>,
     identifier: &str,
   ) -> WriteGuard {
@@ -24,7 +24,7 @@ impl WriteGuard {
     ))
   }
 
-  pub fn acquire_root_identifier_write_guard(
+  pub(in locking) fn acquire_root_identifier_write_guard(
     btree: &Arc<BTree>,
   ) -> WriteGuard {
     WriteGuard::RootIdentifierWriteGuard(
