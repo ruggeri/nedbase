@@ -1,7 +1,5 @@
 use super::acquire_parent_of_deepest_stable_node;
-use locking::{
-  LockSet, LockSetReadGuard, WriteGuardPath,
-};
+use locking::{LockSet, LockSetReadGuard, WriteGuardPath};
 
 enum WriteGuardPathAcquisitionResult {
   Success(WriteGuardPath),
@@ -76,7 +74,9 @@ fn try_to_acquire_write_guard_path(
         .peek_deepest_lock(
           "write_guards starts with a Node and we only add more",
         )
-        .unwrap_node_ref("last guard in lock path should always be for a Node");
+        .unwrap_node_ref(
+          "last guard in lock path should always be for a Node",
+        );
 
       if last_node.is_leaf_node() {
         break;
@@ -114,8 +114,8 @@ fn try_to_acquire_top_write_guard(
       // all the way through the root.
       let root_identifier_guard =
         lock_set.root_identifier_write_guard_for_hold();
-      let root_node_guard =
-        lock_set.node_write_guard_for_hold(&root_identifier_guard.identifier());
+      let root_node_guard = lock_set
+        .node_write_guard_for_hold(&root_identifier_guard.identifier());
       write_guards.push(root_identifier_guard.upcast());
       write_guards.push(root_node_guard.upcast());
     }

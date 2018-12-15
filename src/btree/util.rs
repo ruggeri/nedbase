@@ -1,6 +1,4 @@
-use locking::{
-  LockSet, LockSetReadGuard, ReadGuardPath,
-};
+use locking::{LockSet, LockSetReadGuard, ReadGuardPath};
 use node::Node;
 
 // Finds highest lock target that may need to be mutated by an
@@ -17,7 +15,8 @@ where
 
   // Acquire read lock on root identifier, and then on the root node.
   {
-    let identifier_guard = lock_set.root_identifier_read_guard_for_temp();
+    let identifier_guard =
+      lock_set.root_identifier_read_guard_for_temp();
     let current_node_guard =
       lock_set.node_read_guard_for_temp(&identifier_guard.identifier());
 
@@ -87,12 +86,11 @@ where
 
   // First, drop all but the top two locks. Unpack those.
   read_guards.truncate(2);
-  let node_guard = read_guards
-    .pop("expected at least root node guard here...");
-  let node = node_guard
-    .unwrap_node_ref(
-      "second lock should never be a root identifier lock",
-    );
+  let node_guard =
+    read_guards.pop("expected at least root node guard here...");
+  let node = node_guard.unwrap_node_ref(
+    "second lock should never be a root identifier lock",
+  );
   let parent_guard =
     read_guards.pop("should always have had at least two guards");
 

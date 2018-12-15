@@ -57,18 +57,13 @@ impl UnderflowAction {
     }
   }
 
-  pub fn execute(
-    self,
-    btree: &BTree,
-  ) -> UnderflowActionResult {
+  pub fn execute(self, btree: &BTree) -> UnderflowActionResult {
     match self {
       UnderflowAction::MergeWithSibbling(action) => {
         action.execute(btree)
       }
 
-      UnderflowAction::UpdateRootIdentifier(action) => {
-        action.execute()
-      }
+      UnderflowAction::UpdateRootIdentifier(action) => action.execute(),
     }
   }
 }

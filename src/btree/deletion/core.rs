@@ -5,7 +5,11 @@ use btree::BTree;
 use locking::LockSet;
 use std::sync::Arc;
 
-pub fn delete(btree: &Arc<BTree>, lock_set: &mut LockSet, key_to_delete: &str) {
+pub fn delete(
+  btree: &Arc<BTree>,
+  lock_set: &mut LockSet,
+  key_to_delete: &str,
+) {
   // Acquire locks.
   let mut deletion_path =
     acquire_deletion_path(lock_set, key_to_delete);

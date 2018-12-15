@@ -16,7 +16,11 @@ pub(self) use self::underflow_actions::{
 };
 
 impl BTree {
-  pub fn delete(btree: &Arc<BTree>, lock_set: &mut LockSet, insert_key: &str) {
+  pub fn delete(
+    btree: &Arc<BTree>,
+    lock_set: &mut LockSet,
+    insert_key: &str,
+  ) {
     core::delete(btree, lock_set, insert_key)
   }
 }

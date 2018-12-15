@@ -16,8 +16,10 @@ impl BTree {
     key: &str,
   ) -> LockSetNodeReadGuard {
     let (mut _parent_guard, mut current_node_guard) = {
-      let root_identifier_guard = lock_set.root_identifier_read_guard_for_temp();
-      let mut current_node_guard = lock_set.node_read_guard_for_temp(&root_identifier_guard.identifier());
+      let root_identifier_guard =
+        lock_set.root_identifier_read_guard_for_temp();
+      let mut current_node_guard = lock_set
+        .node_read_guard_for_temp(&root_identifier_guard.identifier());
 
       (root_identifier_guard.upcast(), current_node_guard)
     };
@@ -44,7 +46,8 @@ impl BTree {
       current_node_guard = child_guard;
     }
 
-    let target_identifier = String::from(current_node_guard.node().identifier());
+    let target_identifier =
+      String::from(current_node_guard.node().identifier());
     current_node_guard.release();
 
     lock_set.node_read_guard_for_hold(&target_identifier)

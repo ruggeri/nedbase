@@ -2,9 +2,13 @@ use btree::deletion::UnderflowAction;
 use locking::{LockSetNodeWriteGuard, LockSetRootIdentifierWriteGuard};
 
 pub enum DeletionPathEntry {
-  TopStableNode { stable_node_guard: LockSetNodeWriteGuard },
+  TopStableNode {
+    stable_node_guard: LockSetNodeWriteGuard,
+  },
 
-  UnstableNode { underflow_action: UnderflowAction },
+  UnstableNode {
+    underflow_action: UnderflowAction,
+  },
 }
 
 impl DeletionPathEntry {
@@ -55,13 +59,13 @@ impl DeletionPathEntry {
 
   pub fn path_node_guard_mut(&mut self) -> &mut LockSetNodeWriteGuard {
     match self {
-      DeletionPathEntry::TopStableNode { ref mut stable_node_guard } => {
-        stable_node_guard
-      }
+      DeletionPathEntry::TopStableNode {
+        ref mut stable_node_guard,
+      } => stable_node_guard,
 
-      DeletionPathEntry::UnstableNode { ref mut underflow_action } => {
-        underflow_action.path_node_guard_mut()
-      }
+      DeletionPathEntry::UnstableNode {
+        ref mut underflow_action,
+      } => underflow_action.path_node_guard_mut(),
     }
   }
 }

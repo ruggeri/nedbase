@@ -7,9 +7,7 @@ pub struct UpdateRootIdentifierAction {
 }
 
 impl UpdateRootIdentifierAction {
-  pub fn execute(
-    &self,
-  ) -> UnderflowActionResult {
+  pub fn execute(&self) -> UnderflowActionResult {
     let new_root_identifier = {
       // First, get the root_node.
       let root_node = self.root_node_guard.node();

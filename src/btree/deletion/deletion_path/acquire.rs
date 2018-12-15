@@ -1,7 +1,5 @@
 use super::{DeletionPath, DeletionPathEntry};
-use btree::deletion::{
-  acquire_parent_of_deepest_stable_node
-};
+use btree::deletion::acquire_parent_of_deepest_stable_node;
 use locking::{LockSet, LockSetNodeWriteGuard};
 
 pub fn acquire_deletion_path(
@@ -11,8 +9,7 @@ pub fn acquire_deletion_path(
   // Acquire a write lock on the deepest stable node (or root identifier
   // if there is no stable node).
   let mut deletion_path = loop {
-    let deletion_path =
-      begin_deletion_path(lock_set, key_to_delete);
+    let deletion_path = begin_deletion_path(lock_set, key_to_delete);
 
     if deletion_path.is_some() {
       // Hopefully the deepest stable node stayed stable! Then we can
@@ -31,11 +28,7 @@ pub fn acquire_deletion_path(
       break;
     }
 
-    extend_deletion_path(
-      lock_set,
-      &mut deletion_path,
-      key_to_delete,
-    );
+    extend_deletion_path(lock_set, &mut deletion_path, key_to_delete);
   }
 
   deletion_path
@@ -48,27 +41,26 @@ fn begin_deletion_path(
 ) -> Option<DeletionPath> {
   // The first step is to acquire a read guard of the parent above our
   // target stable node.
-  let parent_guard =
-    match acquire_parent_of_deepest_stable_node(lock_set, key_to_delete) {
-      None => {
-        // However, the root itself may be unstable for deletion. In that
-        // case, we may be merging a new root!
-        return Some(DeletionPath::new_from_unstable_root(lock_set));
-      }
+  let parent_guard = match acquire_parent_of_deepest_stable_node(
+    lock_set,
+    key_to_delete,
+  ) {
+    None => {
+      // However, the root itself may be unstable for deletion. In that
+      // case, we may be merging a new root!
+      return Some(DeletionPath::new_from_unstable_root(lock_set));
+    }
 
-      // Normally, there is *some* stable node. We unwrap its parent.
-      Some(parent_guard) => parent_guard,
-    };
+    // Normally, there is *some* stable node. We unwrap its parent.
+    Some(parent_guard) => parent_guard,
+  };
 
   // We write lock the stable node.
   let deletion_path = match parent_guard.downcast() {
     // If the deepest stable node is the root, then parent_guard will be
     // a read guard on the root_identifier.
     (Some(root_identifier), None) => {
-      DeletionPath::new_from_stable_parent(
-        lock_set,
-        &root_identifier,
-      )
+      DeletionPath::new_from_stable_parent(lock_set, &root_identifier)
     }
 
     // Typically, the deepest stable node is not the root. In which
@@ -79,13 +71,12 @@ fn begin_deletion_path(
         .unwrap_interior_node_ref("a parent must be an interior node")
         .child_identifier_by_key(key_to_delete);
 
-      DeletionPath::new_from_stable_parent(
-        lock_set,
-        child_identifier
-      )
+      DeletionPath::new_from_stable_parent(lock_set, child_identifier)
     }
 
-    _ => panic!("Every guard must be for a RootIdentifier or a Node..."),
+    _ => {
+      panic!("Every guard must be for a RootIdentifier or a Node...")
+    }
   };
 
   // We must check: did the target node go unstable on us? If that
@@ -122,7 +113,8 @@ fn extend_deletion_path(
     let child_idx = parent_node.child_idx_by_key(key_to_delete);
     let child_node_identifier =
       parent_node.child_identifier_by_idx(child_idx);
-    let child_node_guard = lock_set.node_write_guard_for_hold(&child_node_identifier);
+    let child_node_guard =
+      lock_set.node_write_guard_for_hold(&child_node_identifier);
 
     (child_idx, child_node_guard)
   };
@@ -177,7 +169,10 @@ fn acquire_sibbling_node(
         let left_sibbling_guard = lock_set
           .node_write_guard_for_hold(&left_sibbling_node_identifier);
 
-        if left_sibbling_guard.node().can_delete_without_becoming_deficient() {
+        if left_sibbling_guard
+          .node()
+          .can_delete_without_becoming_deficient()
+        {
           return left_sibbling_guard;
         }
       }

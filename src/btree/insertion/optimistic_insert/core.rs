@@ -4,7 +4,11 @@ use locking::{LockSet, WriteGuard};
 use node::{InsertionResult, InteriorNode};
 use std::sync::Arc;
 
-pub fn optimistic_insert(btree: &Arc<BTree>, lock_set: &mut LockSet, insert_key: &str) {
+pub fn optimistic_insert(
+  btree: &Arc<BTree>,
+  lock_set: &mut LockSet,
+  insert_key: &str,
+) {
   // Acquire a read lock on the parent of the lowest stable node. Then
   // lock that stable node for writing. And acquire the write path down
   // to the leaf.
@@ -43,7 +47,9 @@ pub fn optimistic_insert(btree: &Arc<BTree>, lock_set: &mut LockSet, insert_key:
           .handle_split(btree, child_split_info);
       }
 
-      WriteGuard::RootIdentifierWriteGuard(ref mut identifier_guard) => {
+      WriteGuard::RootIdentifierWriteGuard(
+        ref mut identifier_guard,
+      ) => {
         // We may split all the way to the root. First, create a new
         // root node.
         let new_root_identifier =

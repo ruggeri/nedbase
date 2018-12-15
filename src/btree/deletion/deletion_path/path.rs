@@ -13,8 +13,10 @@ impl DeletionPath {
   pub fn new_from_unstable_root(
     lock_set: &mut LockSet,
   ) -> DeletionPath {
-    let root_identifier_guard = lock_set.root_identifier_write_guard_for_hold();
-    let root_node_guard = lock_set.node_write_guard_for_hold(&root_identifier_guard.identifier());
+    let root_identifier_guard =
+      lock_set.root_identifier_write_guard_for_hold();
+    let root_node_guard = lock_set
+      .node_write_guard_for_hold(&root_identifier_guard.identifier());
 
     DeletionPath {
       entries: vec![
@@ -31,19 +33,18 @@ impl DeletionPath {
     lock_set: &mut LockSet,
     identifier: &str,
   ) -> DeletionPath {
-    let stable_node_guard = lock_set.node_write_guard_for_hold(identifier);
+    let stable_node_guard =
+      lock_set.node_write_guard_for_hold(identifier);
 
     DeletionPath {
       entries: vec![DeletionPathEntry::new_top_stable_node_entry(
-        stable_node_guard
+        stable_node_guard,
       )],
     }
   }
 
   // The last node that was added to this path.
-  pub fn last_node_guard_ref(
-    &self,
-  ) -> &LockSetNodeWriteGuard {
+  pub fn last_node_guard_ref(&self) -> &LockSetNodeWriteGuard {
     self.last_path_entry_ref().path_node_guard()
   }
 
@@ -55,16 +56,12 @@ impl DeletionPath {
   }
 
   // The last node that was added to this path.
-  pub fn last_node_ref(
-    &self,
-  ) -> Ref<Node> {
+  pub fn last_node_ref(&self) -> Ref<Node> {
     self.last_node_guard_ref().node()
   }
 
   // The last node that was added to this path.
-  pub fn last_node_mut_ref(
-    &mut self,
-  ) -> RefMut<Node> {
+  pub fn last_node_mut_ref(&mut self) -> RefMut<Node> {
     self.last_node_guard_mut_ref().node_mut()
   }
 

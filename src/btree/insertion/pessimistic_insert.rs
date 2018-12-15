@@ -1,18 +1,21 @@
 use btree::BTree;
-use locking::{
-  LockSet, WriteGuard, WriteGuardPath,
-};
+use locking::{LockSet, WriteGuard, WriteGuardPath};
 use node::{InsertionResult, InteriorNode};
 use std::sync::Arc;
 
-pub fn pessimistic_insert(btree: &Arc<BTree>, lock_set: &mut LockSet, insert_key: &str) {
+pub fn pessimistic_insert(
+  btree: &Arc<BTree>,
+  lock_set: &mut LockSet,
+  insert_key: &str,
+) {
   let mut write_guards = WriteGuardPath::new();
 
   // Acquire write lock on root identifier, and then on the root node.
   {
-    let identifier_guard = lock_set.root_identifier_write_guard_for_hold();
-    let current_node_guard =
-      lock_set.node_write_guard_for_hold(&identifier_guard.identifier());
+    let identifier_guard =
+      lock_set.root_identifier_write_guard_for_hold();
+    let current_node_guard = lock_set
+      .node_write_guard_for_hold(&identifier_guard.identifier());
 
     // If root node won't need to split, we can release the write
     // guard on the root identifier.
@@ -29,10 +32,9 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, lock_set: &mut LockSet, insert_key
   loop {
     let current_node_guard = {
       let prev_node = {
-        let deepest_lock = write_guards
-          .peek_deepest_lock(
-            "since we break at LeafNode, should not run out of locks",
-          );
+        let deepest_lock = write_guards.peek_deepest_lock(
+          "since we break at LeafNode, should not run out of locks",
+        );
         deepest_lock.unwrap_node_ref(
           "final write guard in path should always be for a node",
         )
@@ -42,10 +44,9 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, lock_set: &mut LockSet, insert_key
         break;
       }
 
-      let node = prev_node
-        .unwrap_interior_node_ref(
-          "must not descend through interior node",
-        );
+      let node = prev_node.unwrap_interior_node_ref(
+        "must not descend through interior node",
+      );
 
       let child_identifier = node.child_identifier_by_key(insert_key);
       lock_set.node_write_guard_for_hold(child_identifier)
@@ -64,10 +65,10 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, lock_set: &mut LockSet, insert_key
   // After descending all the way, perform the insert at the leaf.
   let mut last_guard = write_guards
     .pop("should have acquired at least one write guard for insertion");
-  let mut last_node = last_guard.unwrap_node_mut_ref("should be inserting at a node");
+  let mut last_node =
+    last_guard.unwrap_node_mut_ref("should be inserting at a node");
 
-  let mut insertion_result =
-    last_node
+  let mut insertion_result = last_node
     .unwrap_leaf_node_mut_ref("insertion should happen at leaf node")
     .insert(btree, String::from(insert_key));
 
