@@ -205,9 +205,8 @@ fn acquire_sibbling_node(
       // Hmm...
       write_set.drop_node_guard(&left_sibbling_node_identifier);
 
-      // If you can't rotate from the left sibbling, try using the right
-      // sibbling. Prefer merging from the right.
-      write_set.drop_node_guard(&left_sibbling_node_identifier);
+      // Since you can't rotate from the left sibbling, try using the
+      // right sibbling. Prefer merging from the right.
       write_set
         .acquire_node_guard(btree, &right_sibbling_node_identifier);
       right_sibbling_node_identifier
