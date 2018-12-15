@@ -1,6 +1,11 @@
-use super::{LockSetNodeReadGuard, LockSetNodeWriteGuard, LockSetRootIdentifierReadGuard, LockSetRootIdentifierWriteGuard};
-use locking::{Guard, LockTarget, ReadGuard, TransactionMode, WriteGuard};
+use super::{
+  LockSetNodeReadGuard, LockSetNodeWriteGuard,
+  LockSetRootIdentifierReadGuard, LockSetRootIdentifierWriteGuard,
+};
 use btree::BTree;
+use locking::{
+  Guard, LockTarget, ReadGuard, TransactionMode, WriteGuard,
+};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::{Rc, Weak};
@@ -8,13 +13,13 @@ use std::sync::Arc;
 
 enum LockMode {
   Read,
-  Write
+  Write,
 }
 
 pub struct LockSet {
   btree: Arc<BTree>,
   guards: HashMap<LockTarget, (LockMode, Weak<RefCell<Guard>>)>,
-  tx_mode: TransactionMode
+  tx_mode: TransactionMode,
 }
 
 impl LockSet {
@@ -34,37 +39,59 @@ impl LockSet {
     }
   }
 
-  pub fn node_read_guard_for_hold(&mut self, identifier: &str) -> LockSetNodeReadGuard {
-    let guard = self.read_guard_for_hold(&LockTarget::Node(String::from(identifier)));
+  pub fn node_read_guard_for_hold(
+    &mut self,
+    identifier: &str,
+  ) -> LockSetNodeReadGuard {
+    let guard = self
+      .read_guard_for_hold(&LockTarget::Node(String::from(identifier)));
     LockSetNodeReadGuard::from_guard(guard)
   }
 
-  pub fn root_identifier_read_guard_for_hold(&mut self) -> LockSetRootIdentifierReadGuard {
+  pub fn root_identifier_read_guard_for_hold(
+    &mut self,
+  ) -> LockSetRootIdentifierReadGuard {
     let guard = self.read_guard_for_hold(&LockTarget::RootIdentifier);
     LockSetRootIdentifierReadGuard::from_guard(guard)
   }
 
-  pub fn node_read_guard_for_temp(&mut self, identifier: &str) -> LockSetNodeReadGuard {
-    let guard = self.read_guard_for_temp(&LockTarget::Node(String::from(identifier)));
+  pub fn node_read_guard_for_temp(
+    &mut self,
+    identifier: &str,
+  ) -> LockSetNodeReadGuard {
+    let guard = self
+      .read_guard_for_temp(&LockTarget::Node(String::from(identifier)));
     LockSetNodeReadGuard::from_guard(guard)
   }
 
-  pub fn root_identifier_read_guard_for_temp(&mut self) -> LockSetRootIdentifierReadGuard {
+  pub fn root_identifier_read_guard_for_temp(
+    &mut self,
+  ) -> LockSetRootIdentifierReadGuard {
     let guard = self.read_guard_for_temp(&LockTarget::RootIdentifier);
     LockSetRootIdentifierReadGuard::from_guard(guard)
   }
 
-  pub fn node_write_guard_for_hold(&mut self, identifier: &str) -> LockSetNodeWriteGuard {
-    let guard = self.write_guard_for_hold(&LockTarget::Node(String::from(identifier)));
+  pub fn node_write_guard_for_hold(
+    &mut self,
+    identifier: &str,
+  ) -> LockSetNodeWriteGuard {
+    let guard = self.write_guard_for_hold(&LockTarget::Node(
+      String::from(identifier),
+    ));
     LockSetNodeWriteGuard::from_guard(guard)
   }
 
-  pub fn root_identifier_write_guard_for_hold(&mut self) -> LockSetRootIdentifierWriteGuard {
+  pub fn root_identifier_write_guard_for_hold(
+    &mut self,
+  ) -> LockSetRootIdentifierWriteGuard {
     let guard = self.write_guard_for_hold(&LockTarget::RootIdentifier);
     LockSetRootIdentifierWriteGuard::from_guard(guard)
   }
 
-  fn read_guard_for_hold(&mut self, lock_target: &LockTarget) -> Rc<RefCell<Guard>> {
+  fn read_guard_for_hold(
+    &mut self,
+    lock_target: &LockTarget,
+  ) -> Rc<RefCell<Guard>> {
     if !self.guards.contains_key(lock_target) {
       return self.acquire_read_guard_for_hold(lock_target);
     }
@@ -78,7 +105,10 @@ impl LockSet {
     self.acquire_read_guard_for_hold(lock_target)
   }
 
-  fn read_guard_for_temp(&mut self, lock_target: &LockTarget) -> Rc<RefCell<Guard>> {
+  fn read_guard_for_temp(
+    &mut self,
+    lock_target: &LockTarget,
+  ) -> Rc<RefCell<Guard>> {
     if !self.guards.contains_key(lock_target) {
       return self.acquire_read_guard_for_temp(lock_target);
     }
@@ -92,7 +122,10 @@ impl LockSet {
     self.acquire_read_guard_for_temp(lock_target)
   }
 
-  fn write_guard_for_hold(&mut self, lock_target: &LockTarget) -> Rc<RefCell<Guard>> {
+  fn write_guard_for_hold(
+    &mut self,
+    lock_target: &LockTarget,
+  ) -> Rc<RefCell<Guard>> {
     if !self.guards.contains_key(lock_target) {
       return self.acquire_write_guard_for_hold(lock_target);
     }
@@ -106,15 +139,20 @@ impl LockSet {
     self.acquire_write_guard_for_hold(lock_target)
   }
 
-  fn acquire_read_guard_for_hold(&mut self, lock_target: &LockTarget) -> Rc<RefCell<Guard>> {
+  fn acquire_read_guard_for_hold(
+    &mut self,
+    lock_target: &LockTarget,
+  ) -> Rc<RefCell<Guard>> {
     let (lock_mode, guard) = match self.tx_mode {
       TransactionMode::ReadOnly => {
-        let guard = ReadGuard::acquire_read_guard(&self.btree, lock_target);
+        let guard =
+          ReadGuard::acquire_read_guard(&self.btree, lock_target);
         (LockMode::Read, Guard::Read(guard))
       }
 
       TransactionMode::ReadWrite => {
-        let guard = WriteGuard::acquire_write_guard(&self.btree, lock_target);
+        let guard =
+          WriteGuard::acquire_write_guard(&self.btree, lock_target);
         (LockMode::Write, Guard::Write(guard))
       }
     };
@@ -127,12 +165,17 @@ impl LockSet {
     let guard = Rc::new(guard);
 
     // Store a weak version in the map.
-    self.guards.insert(lock_target.clone(), (lock_mode, Rc::downgrade(&guard)));
+    self
+      .guards
+      .insert(lock_target.clone(), (lock_mode, Rc::downgrade(&guard)));
 
     guard
   }
 
-  fn acquire_read_guard_for_temp(&mut self, lock_target: &LockTarget) -> Rc<RefCell<Guard>> {
+  fn acquire_read_guard_for_temp(
+    &mut self,
+    lock_target: &LockTarget,
+  ) -> Rc<RefCell<Guard>> {
     let lock_mode = LockMode::Read;
     let guard = ReadGuard::acquire_read_guard(&self.btree, lock_target);
     let guard = Guard::Read(guard);
@@ -145,19 +188,25 @@ impl LockSet {
     let guard = Rc::new(guard);
 
     // Store a weak version in the map.
-    self.guards.insert(lock_target.clone(), (lock_mode, Rc::downgrade(&guard)));
+    self
+      .guards
+      .insert(lock_target.clone(), (lock_mode, Rc::downgrade(&guard)));
 
     guard
   }
 
-  fn acquire_write_guard_for_hold(&mut self, lock_target: &LockTarget) -> Rc<RefCell<Guard>> {
+  fn acquire_write_guard_for_hold(
+    &mut self,
+    lock_target: &LockTarget,
+  ) -> Rc<RefCell<Guard>> {
     let guard = match self.tx_mode {
       TransactionMode::ReadOnly => {
         panic!("Must not acquire write guards in ReadOnly transaction");
       }
 
       TransactionMode::ReadWrite => {
-        let guard = WriteGuard::acquire_write_guard(&self.btree, lock_target);
+        let guard =
+          WriteGuard::acquire_write_guard(&self.btree, lock_target);
         Guard::Write(guard)
       }
     };
@@ -170,12 +219,18 @@ impl LockSet {
     let guard = Rc::new(guard);
 
     // Store a weak version in the map.
-    self.guards.insert(lock_target.clone(), (LockMode::Write, Rc::downgrade(&guard)));
+    self.guards.insert(
+      lock_target.clone(),
+      (LockMode::Write, Rc::downgrade(&guard)),
+    );
 
     guard
   }
 
-  fn acquire_temp_read_guard(&mut self, lock_target: &LockTarget) -> Rc<RefCell<Guard>> {
+  fn acquire_temp_read_guard(
+    &mut self,
+    lock_target: &LockTarget,
+  ) -> Rc<RefCell<Guard>> {
     let guard = ReadGuard::acquire_read_guard(&self.btree, lock_target);
     let guard = Guard::Read(guard);
 
@@ -187,12 +242,18 @@ impl LockSet {
     let guard = Rc::new(guard);
 
     // Store a weak version in the map.
-    self.guards.insert(lock_target.clone(), (LockMode::Read, Rc::downgrade(&guard)));
+    self.guards.insert(
+      lock_target.clone(),
+      (LockMode::Read, Rc::downgrade(&guard)),
+    );
 
     guard
   }
 
-  fn upgrade_for_read_hold(&mut self, lock_target: &LockTarget) -> Option<Rc<RefCell<Guard>>> {
+  fn upgrade_for_read_hold(
+    &mut self,
+    lock_target: &LockTarget,
+  ) -> Option<Rc<RefCell<Guard>>> {
     let (lock_mode, guard) = &self.guards[lock_target];
 
     let guard = match guard.upgrade() {
@@ -212,18 +273,22 @@ impl LockSet {
         panic!("Can't hold a write guard on a previously temp guard");
       }
 
-      LockMode::Write => {
-        Some(guard)
-      }
+      LockMode::Write => Some(guard),
     }
   }
 
-  fn upgrade_for_read_temp(&mut self, lock_target: &LockTarget) -> Option<Rc<RefCell<Guard>>> {
+  fn upgrade_for_read_temp(
+    &mut self,
+    lock_target: &LockTarget,
+  ) -> Option<Rc<RefCell<Guard>>> {
     let (_, guard) = &self.guards[lock_target];
     guard.upgrade()
   }
 
-  fn upgrade_for_write_hold(&mut self, lock_target: &LockTarget) -> Option<Rc<RefCell<Guard>>> {
+  fn upgrade_for_write_hold(
+    &mut self,
+    lock_target: &LockTarget,
+  ) -> Option<Rc<RefCell<Guard>>> {
     let (lock_mode, guard) = &self.guards[lock_target];
 
     if self.tx_mode == TransactionMode::ReadOnly {
@@ -243,9 +308,7 @@ impl LockSet {
         panic!("Can't hold a write guard on a previously temp guard");
       }
 
-      LockMode::Write => {
-        Some(guard)
-      }
+      LockMode::Write => Some(guard),
     }
   }
 }

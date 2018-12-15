@@ -39,44 +39,53 @@ impl LockSetReadGuard {
   }
 
   pub fn unwrap_node_ref(&self, msg: &'static str) -> Ref<Node> {
-    Ref::map(
-      self.guard.borrow(),
-      |guard| guard.unwrap_node_ref(msg)
-    )
+    Ref::map(self.guard.borrow(), |guard| guard.unwrap_node_ref(msg))
   }
 
-  pub fn unwrap_root_identifier_ref(&self, msg: &'static str) -> Ref<String> {
-    Ref::map(
-      self.guard.borrow(),
-      |guard| guard.unwrap_root_identifier_ref(msg)
-    )
+  pub fn unwrap_root_identifier_ref(
+    &self,
+    msg: &'static str,
+  ) -> Ref<String> {
+    Ref::map(self.guard.borrow(), |guard| {
+      guard.unwrap_root_identifier_ref(msg)
+    })
   }
 
   pub fn downcast(&self) -> (Option<Ref<String>>, Option<Ref<Node>>) {
     match &(*self.guard.borrow()) {
-      Guard::Read(read_guard) => {
-        match read_guard {
-          ReadGuard::NodeReadGuard(node_guard) => {
-            (None, Some(self.unwrap_node_ref("We just verified we're a node read guard...")))
-          }
+      Guard::Read(read_guard) => match read_guard {
+        ReadGuard::NodeReadGuard(node_guard) => (
+          None,
+          Some(self.unwrap_node_ref(
+            "We just verified we're a node read guard...",
+          )),
+        ),
 
-          ReadGuard::RootIdentifierReadGuard(root_identifier_guard) => {
-            (Some(self.unwrap_root_identifier_ref("We just verified we're a RootIdentifierReadGuard...")), None)
-          }
+        ReadGuard::RootIdentifierReadGuard(root_identifier_guard) => (
+          Some(self.unwrap_root_identifier_ref(
+            "We just verified we're a RootIdentifierReadGuard...",
+          )),
+          None,
+        ),
+      },
+
+      Guard::Write(write_guard) => match write_guard {
+        WriteGuard::NodeWriteGuard(node_guard) => (
+          None,
+          Some(self.unwrap_node_ref(
+            "We just verified we're a node read guard...",
+          )),
+        ),
+
+        WriteGuard::RootIdentifierWriteGuard(root_identifier_guard) => {
+          (
+            Some(self.unwrap_root_identifier_ref(
+              "We just verified we're a RootIdentifierReadGuard...",
+            )),
+            None,
+          )
         }
-      }
-
-      Guard::Write(write_guard) => {
-        match write_guard {
-          WriteGuard::NodeWriteGuard(node_guard) => {
-            (None, Some(self.unwrap_node_ref("We just verified we're a node read guard...")))
-          }
-
-          WriteGuard::RootIdentifierWriteGuard(root_identifier_guard) => {
-            (Some(self.unwrap_root_identifier_ref("We just verified we're a RootIdentifierReadGuard...")), None)
-          }
-        }
-      }
+      },
     }
   }
 }
@@ -87,31 +96,32 @@ impl LockSetWriteGuard {
   }
 
   pub fn guard(&self) -> Ref<WriteGuard> {
-    Ref::map(
-      self.guard.borrow(),
-      |guard| guard.unwrap_write_guard_ref("LockSetWriteGuard must hold WriteGuard")
-    )
+    Ref::map(self.guard.borrow(), |guard| {
+      guard.unwrap_write_guard_ref(
+        "LockSetWriteGuard must hold WriteGuard",
+      )
+    })
   }
 
   pub fn guard_mut(&mut self) -> RefMut<WriteGuard> {
-    RefMut::map(
-      self.guard.borrow_mut(),
-      |guard| guard.unwrap_write_guard_mut_ref("LockSetWriteGuard must hold WriteGuard")
-    )
+    RefMut::map(self.guard.borrow_mut(), |guard| {
+      guard.unwrap_write_guard_mut_ref(
+        "LockSetWriteGuard must hold WriteGuard",
+      )
+    })
   }
 
   pub fn unwrap_node_ref(&self, msg: &'static str) -> Ref<Node> {
-    Ref::map(
-      self.guard.borrow(),
-      |guard| guard.unwrap_node_ref(msg)
-    )
+    Ref::map(self.guard.borrow(), |guard| guard.unwrap_node_ref(msg))
   }
 
-  pub fn unwrap_node_mut_ref(&mut self, msg: &'static str) -> RefMut<Node> {
-    RefMut::map(
-      self.guard.borrow_mut(),
-      |guard| guard.unwrap_node_mut_ref(msg)
-    )
+  pub fn unwrap_node_mut_ref(
+    &mut self,
+    msg: &'static str,
+  ) -> RefMut<Node> {
+    RefMut::map(self.guard.borrow_mut(), |guard| {
+      guard.unwrap_node_mut_ref(msg)
+    })
   }
 }
 
@@ -121,10 +131,11 @@ impl LockSetNodeReadGuard {
   }
 
   pub fn node(&self) -> Ref<Node> {
-    Ref::map(
-      self.guard.borrow(),
-      |guard| guard.unwrap_node_ref("Guard ref in LockSetNodeReadGuard doesn't hold Node?")
-    )
+    Ref::map(self.guard.borrow(), |guard| {
+      guard.unwrap_node_ref(
+        "Guard ref in LockSetNodeReadGuard doesn't hold Node?",
+      )
+    })
   }
 
   pub fn upcast(self) -> LockSetReadGuard {
@@ -135,22 +146,26 @@ impl LockSetNodeReadGuard {
 }
 
 impl LockSetNodeWriteGuard {
-  pub fn from_guard(guard: Rc<RefCell<Guard>>) -> LockSetNodeWriteGuard {
+  pub fn from_guard(
+    guard: Rc<RefCell<Guard>>,
+  ) -> LockSetNodeWriteGuard {
     LockSetNodeWriteGuard { guard }
   }
 
   pub fn node(&self) -> Ref<Node> {
-    Ref::map(
-      self.guard.borrow(),
-      |guard| guard.unwrap_node_ref("Guard ref in LockSetNodeWriteGuard doesn't hold Node?")
-    )
+    Ref::map(self.guard.borrow(), |guard| {
+      guard.unwrap_node_ref(
+        "Guard ref in LockSetNodeWriteGuard doesn't hold Node?",
+      )
+    })
   }
 
   pub fn node_mut(&mut self) -> RefMut<Node> {
-    RefMut::map(
-      self.guard.borrow_mut(),
-      |guard| guard.unwrap_node_mut_ref("Guard ref in LockSetNodeWriteGuard doesn't hold Node?")
-    )
+    RefMut::map(self.guard.borrow_mut(), |guard| {
+      guard.unwrap_node_mut_ref(
+        "Guard ref in LockSetNodeWriteGuard doesn't hold Node?",
+      )
+    })
   }
 
   pub fn upcast(self) -> LockSetWriteGuard {
@@ -159,16 +174,17 @@ impl LockSetNodeWriteGuard {
 }
 
 impl LockSetRootIdentifierReadGuard {
-  pub fn from_guard(guard: Rc<RefCell<Guard>>) -> LockSetRootIdentifierReadGuard {
+  pub fn from_guard(
+    guard: Rc<RefCell<Guard>>,
+  ) -> LockSetRootIdentifierReadGuard {
     LockSetRootIdentifierReadGuard { guard }
   }
 
   pub fn identifier(&self) -> Ref<String> {
     let msg = "Guard ref in LockSetRootIdentifierReadGuard doesn't hold RootIdentifier?";
-    Ref::map(
-      self.guard.borrow(),
-      |guard| guard.unwrap_root_identifier_ref(msg)
-    )
+    Ref::map(self.guard.borrow(), |guard| {
+      guard.unwrap_root_identifier_ref(msg)
+    })
   }
 
   pub fn upcast(self) -> LockSetReadGuard {
@@ -177,24 +193,24 @@ impl LockSetRootIdentifierReadGuard {
 }
 
 impl LockSetRootIdentifierWriteGuard {
-  pub fn from_guard(guard: Rc<RefCell<Guard>>) -> LockSetRootIdentifierWriteGuard {
+  pub fn from_guard(
+    guard: Rc<RefCell<Guard>>,
+  ) -> LockSetRootIdentifierWriteGuard {
     LockSetRootIdentifierWriteGuard { guard }
   }
 
   pub fn identifier(&self) -> Ref<String> {
     let msg = "Guard ref in LockSetRootIdentifierWriteGuard doesn't hold RootIdentifier?";
-    Ref::map(
-      self.guard.borrow(),
-      |guard| guard.unwrap_root_identifier_ref(msg)
-    )
+    Ref::map(self.guard.borrow(), |guard| {
+      guard.unwrap_root_identifier_ref(msg)
+    })
   }
 
   pub fn identifier_mut(&self) -> RefMut<String> {
     let msg = "Guard ref in LockSetRootIdentifierWriteGuard doesn't hold RootIdentifier?";
-    RefMut::map(
-      self.guard.borrow_mut(),
-      |guard| guard.unwrap_root_identifier_mut_ref(msg)
-    )
+    RefMut::map(self.guard.borrow_mut(), |guard| {
+      guard.unwrap_root_identifier_mut_ref(msg)
+    })
   }
 
   pub fn upcast(self) -> LockSetWriteGuard {
