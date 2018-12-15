@@ -1,4 +1,3 @@
-use btree::BTree;
 use node::util::search_sorted_strings_for_str;
 use node::Node;
 
@@ -9,46 +8,12 @@ pub struct LeafNode {
 }
 
 impl LeafNode {
-  pub fn store(btree: &BTree, keys: Vec<String>) -> String {
-    let identifier = btree.get_new_identifier();
-    let node = LeafNode {
-      identifier: identifier.clone(),
-      keys,
-      max_key_capacity: btree.max_key_capacity(),
-    };
-
-    btree.store_node(node.upcast());
-
-    identifier
-  }
-
-  pub fn can_delete_without_becoming_deficient(&self) -> bool {
-    if self.keys.is_empty() {
-      // Special case because else subtraction by one is dangerous!
-      return false;
-    }
-
-    !Node::is_deficient_size(self.num_keys() - 1, self.max_key_capacity)
-  }
-
-  pub fn can_grow_without_split(&self) -> bool {
-    self.keys.len() < self.max_key_capacity
-  }
-
   pub fn contains_key(&self, key: &str) -> bool {
     search_sorted_strings_for_str(&self.keys, key).is_ok()
   }
 
   pub fn identifier(&self) -> &str {
     &self.identifier
-  }
-
-  pub fn is_deficient(&self) -> bool {
-    Node::is_deficient_size(self.num_keys(), self.max_key_capacity)
-  }
-
-  pub fn num_keys(&self) -> usize {
-    self.keys.len()
   }
 
   pub fn upcast(self) -> Node {

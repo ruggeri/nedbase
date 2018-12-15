@@ -34,7 +34,7 @@ impl InteriorNode {
     );
   }
 
-  pub fn handle_child_merge(
+  pub(in node) fn handle_child_merge(
     &mut self,
     left_idx: usize,
     merged_node_identifier: String,
@@ -48,7 +48,7 @@ impl InteriorNode {
     self.child_identifiers[left_idx] = merged_node_identifier;
   }
 
-  pub fn handle_leaf_child_rotate(
+  pub(in node) fn handle_leaf_child_rotate(
     &mut self,
     left_idx: usize,
     new_split_key: String,
@@ -56,7 +56,7 @@ impl InteriorNode {
     self.splits[left_idx] = new_split_key;
   }
 
-  pub fn merge_sibblings(
+  pub(in node) fn merge_sibblings(
     btree: &BTree,
     parent_node: &mut InteriorNode,
     left_node: &InteriorNode,
@@ -80,7 +80,7 @@ impl InteriorNode {
     parent_node.handle_child_merge(left_idx, merged_node_identifier);
   }
 
-  pub fn rotate_left_from_sibbling(
+  pub(in node) fn rotate_left_from_sibbling(
     parent_node: &mut InteriorNode,
     left_node: &mut InteriorNode,
     right_node: &mut InteriorNode,
@@ -114,7 +114,7 @@ impl InteriorNode {
     parent_node.splits[left_idx] = new_parent_split_key;
   }
 
-  pub fn rotate_right_from_sibbling(
+  pub(in node) fn rotate_right_from_sibbling(
     parent_node: &mut InteriorNode,
     left_node: &mut InteriorNode,
     right_node: &mut InteriorNode,

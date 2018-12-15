@@ -25,7 +25,7 @@ impl BTree {
     };
 
     // Then we do create an empty leaf node for the root.
-    let root_identifier = LeafNode::store(&btree, vec![]);
+    let root_identifier = LeafNode::empty(&btree);
 
     // Then we store this for the root node identifier.
     *(btree.root_identifier_lock.write()) = root_identifier;

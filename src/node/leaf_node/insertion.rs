@@ -4,6 +4,8 @@ use node::{
   util::search_sorted_strings_for_str, InsertionResult, SplitInfo,
 };
 
+// These are methods for inserting a value into the LeafNode, and for
+// splitting a LeafNode when it becomes full.
 impl LeafNode {
   pub fn insert(
     &mut self,
@@ -27,7 +29,6 @@ impl LeafNode {
     self.insert_and_split(btree, key_to_insert)
   }
 
-  // TODO: Could this become a more simple `split` method?
   fn insert_and_split(
     &self,
     btree: &BTree,
