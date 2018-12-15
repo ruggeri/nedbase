@@ -3,26 +3,32 @@ use node::Node;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
+#[derive(Clone)]
 pub struct LockSetReadGuard {
   guard: Rc<RefCell<Guard>>,
 }
 
+#[derive(Clone)]
 pub struct LockSetWriteGuard {
   guard: Rc<RefCell<Guard>>,
 }
 
+#[derive(Clone)]
 pub struct LockSetNodeReadGuard {
   guard: Rc<RefCell<Guard>>,
 }
 
+#[derive(Clone)]
 pub struct LockSetNodeWriteGuard {
   guard: Rc<RefCell<Guard>>,
 }
 
+#[derive(Clone)]
 pub struct LockSetRootIdentifierReadGuard {
   guard: Rc<RefCell<Guard>>,
 }
 
+#[derive(Clone)]
 pub struct LockSetRootIdentifierWriteGuard {
   guard: Rc<RefCell<Guard>>,
 }
@@ -180,6 +186,14 @@ impl LockSetRootIdentifierWriteGuard {
     Ref::map(
       self.guard.borrow(),
       |guard| guard.unwrap_root_identifier_ref(msg)
+    )
+  }
+
+  pub fn identifier_mut(&self) -> RefMut<String> {
+    let msg = "Guard ref in LockSetRootIdentifierWriteGuard doesn't hold RootIdentifier?";
+    RefMut::map(
+      self.guard.borrow_mut(),
+      |guard| guard.unwrap_root_identifier_mut_ref(msg)
     )
   }
 

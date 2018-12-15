@@ -40,7 +40,7 @@ fn perform_insertions(btree: &Arc<BTree>) {
 
   // Next, check that we can properly find what we have added.
   for insertion in insertions {
-    let mut lock_set = LockSet::new_read_lock_set(btree);
+    let mut lock_set = LockSet::new_write_lock_set(btree);
 
     if !BTree::contains_key(&mut lock_set, &insertion) {
       println!("Dropped key: {}", insertion);
@@ -48,6 +48,6 @@ fn perform_insertions(btree: &Arc<BTree>) {
     }
 
     // And interleave deletions.
-    // BTree::delete(btree, &insertion);
+    BTree::delete(btree, &mut lock_set, &insertion);
   }
 }

@@ -1,26 +1,23 @@
 use super::{DeletionPath, DeletionPathEntry};
 use btree::deletion::{
-  acquire_parent_of_deepest_stable_node, WriteSet,
+  acquire_parent_of_deepest_stable_node
 };
-use btree::BTree;
-use locking::ReadGuard;
-use std::sync::Arc;
+use locking::{LockSet, LockSetNodeWriteGuard};
 
 pub fn acquire_deletion_path(
-  btree: &Arc<BTree>,
+  lock_set: &mut LockSet,
   key_to_delete: &str,
-) -> (DeletionPath, WriteSet) {
+) -> DeletionPath {
   // Acquire a write lock on the deepest stable node (or root identifier
   // if there is no stable node).
-  let (mut deletion_path, mut write_set) = loop {
-    let mut write_set = WriteSet::new();
+  let mut deletion_path = loop {
     let deletion_path =
-      begin_deletion_path(btree, &mut write_set, key_to_delete);
+      begin_deletion_path(lock_set, key_to_delete);
 
     if deletion_path.is_some() {
       // Hopefully the deepest stable node stayed stable! Then we can
       // continue.
-      break (deletion_path.unwrap(), write_set);
+      break deletion_path.unwrap();
     }
 
     // The deepest stable node may go unstable due to simultaneous
@@ -30,37 +27,33 @@ pub fn acquire_deletion_path(
 
   loop {
     // We descend until we hit a leaf, acquiring nodes along the way.
-    if deletion_path.last_node_ref(&write_set).is_leaf_node() {
+    if deletion_path.last_node_ref().is_leaf_node() {
       break;
     }
 
     extend_deletion_path(
-      btree,
+      lock_set,
       &mut deletion_path,
-      &mut write_set,
       key_to_delete,
     );
   }
 
-  (deletion_path, write_set)
+  deletion_path
 }
 
 // Starts the deletion path by acquiring the topmost write guard.
 fn begin_deletion_path(
-  btree: &Arc<BTree>,
-  write_set: &mut WriteSet,
+  lock_set: &mut LockSet,
   key_to_delete: &str,
 ) -> Option<DeletionPath> {
   // The first step is to acquire a read guard of the parent above our
   // target stable node.
   let parent_guard =
-    match acquire_parent_of_deepest_stable_node(btree, key_to_delete) {
+    match acquire_parent_of_deepest_stable_node(lock_set, key_to_delete) {
       None => {
         // However, the root itself may be unstable for deletion. In that
         // case, we may be merging a new root!
-        return Some(DeletionPath::new_from_unstable_root(
-          btree, write_set,
-        ));
+        return Some(DeletionPath::new_from_unstable_root(lock_set));
       }
 
       // Normally, there is *some* stable node. We unwrap its parent.
@@ -68,96 +61,88 @@ fn begin_deletion_path(
     };
 
   // We write lock the stable node.
-  let deletion_path = match parent_guard {
+  let deletion_path = match parent_guard.downcast() {
     // If the deepest stable node is the root, then parent_guard will be
     // a read guard on the root_identifier.
-    ReadGuard::RootIdentifierReadGuard(root_identifier_guard) => {
+    (Some(root_identifier), None) => {
       DeletionPath::new_from_stable_parent(
-        btree,
-        write_set,
-        root_identifier_guard.as_str_ref(),
+        lock_set,
+        &root_identifier,
       )
     }
 
     // Typically, the deepest stable node is not the root. In which
     // case, we have read locked its parent. Here we take the write lock
     // on the child, releasing the read lock on the parent.
-    ReadGuard::NodeReadGuard(parent_node_guard) => {
-      let child_identifier = parent_node_guard
+    (None, Some(parent_node)) => {
+      let child_identifier = parent_node
         .unwrap_interior_node_ref("a parent must be an interior node")
         .child_identifier_by_key(key_to_delete);
 
       DeletionPath::new_from_stable_parent(
-        btree,
-        write_set,
-        child_identifier,
+        lock_set,
+        child_identifier
       )
     }
+
+    _ => panic!("Every guard must be for a RootIdentifier or a Node..."),
   };
 
   // We must check: did the target node go unstable on us? If that
   // happened, we will have to start everything again...
-  let last_node_of_path = deletion_path.last_node_ref(write_set);
+  let is_still_stable = {
+    let last_node_guard_of_path = deletion_path.last_node_guard_ref();
+    let last_node_of_path = last_node_guard_of_path.node();
+    last_node_of_path.can_delete_without_becoming_deficient()
+  };
 
-  if !last_node_of_path.can_delete_without_becoming_deficient() {
-    None
-  } else {
+  if is_still_stable {
     Some(deletion_path)
+  } else {
+    None
   }
 }
 
 // We extend our path by locking a new path node, and also a sibbling to
 // merge with (or rotate with).
 fn extend_deletion_path(
-  btree: &Arc<BTree>,
+  lock_set: &mut LockSet,
   path: &mut DeletionPath,
-  write_set: &mut WriteSet,
   key_to_delete: &str,
 ) {
-  // Get identifiers of parent/child/sibbling.
-  let (
-    parent_node_identifier,
-    child_node_identifier,
-    sibbling_node_identifiers,
-  ) = {
-    // Who is the parent?
-    let parent_node = path
-      .last_node_ref(write_set)
-      .unwrap_interior_node_ref("must not descend through leaves");
-    let parent_node_identifier = String::from(parent_node.identifier());
+  // Who is the parent?
+  let parent_node_guard = path.last_node_guard_ref().clone();
 
-    // Who is the child? Acquire it.
+  // Who is the child? Acquire it.
+  let (child_idx, child_node_guard) = {
+    let parent_node_ref = parent_node_guard.node();
+    let parent_node = parent_node_ref
+      .unwrap_interior_node_ref("must not descend through leaves");
+
     let child_idx = parent_node.child_idx_by_key(key_to_delete);
     let child_node_identifier =
-      String::from(parent_node.child_identifier_by_idx(child_idx));
+      parent_node.child_identifier_by_idx(child_idx);
+    let child_node_guard = lock_set.node_write_guard_for_hold(&child_node_identifier);
 
-    // Who are the sibblings?
-    let sibbling_node_identifiers =
-      parent_node.sibbling_identifiers_for_idx(child_idx);
-    let sibbling_node_identifiers = (
-      sibbling_node_identifiers.0.map(String::from),
-      sibbling_node_identifiers.1.map(String::from),
-    );
-
-    (
-      parent_node_identifier,
-      child_node_identifier,
-      sibbling_node_identifiers,
-    )
+    (child_idx, child_node_guard)
   };
 
-  // Acquire the child node.
-  write_set.acquire_node_guard(btree, &child_node_identifier);
+  // Who are the sibblings?
+  let sibbling_node_guard = {
+    let parent_node_ref = parent_node_guard.node();
+    let sibbling_node_identifiers = parent_node_ref
+      .unwrap_interior_node_ref("must not descend through leaves")
+      .sibbling_identifiers_for_idx(child_idx);
 
-  // Which is the sibbling to merge with? Acquire it.
-  let merge_sibbling_identifier =
-    acquire_sibbling_node(btree, write_set, sibbling_node_identifiers);
+    // Which is the sibbling to merge with? Acquire it.
+    acquire_sibbling_node(lock_set, sibbling_node_identifiers)
+  };
 
   // Create a DeletionPathEntry saying to do a merge.
   let path_entry = DeletionPathEntry::new_merge_with_sibbling_entry(
-    parent_node_identifier,
-    child_node_identifier,
-    merge_sibbling_identifier,
+    parent_node_guard,
+    child_node_guard,
+    sibbling_node_guard,
   );
 
   // And store it in on the path.
@@ -165,10 +150,9 @@ fn extend_deletion_path(
 }
 
 fn acquire_sibbling_node(
-  btree: &Arc<BTree>,
-  write_set: &mut WriteSet,
-  sibbling_node_identifiers: (Option<String>, Option<String>),
-) -> String {
+  lock_set: &mut LockSet,
+  sibbling_node_identifiers: (Option<&str>, Option<&str>),
+) -> LockSetNodeWriteGuard {
   match sibbling_node_identifiers {
     (None, None) => {
       panic!("non-root node should never have no sibblings")
@@ -177,8 +161,7 @@ fn acquire_sibbling_node(
     // If there is only one sibbling, we don't get a choice.
     (Some(sibbling_node_identifier), None)
     | (None, Some(sibbling_node_identifier)) => {
-      write_set.acquire_node_guard(btree, &sibbling_node_identifier);
-      sibbling_node_identifier
+      lock_set.node_write_guard_for_hold(&sibbling_node_identifier)
     }
 
     (
@@ -191,25 +174,18 @@ fn acquire_sibbling_node(
       //
       // Prefer rotating from the left node. Probably fine.
       {
-        let left_sibbling_guard = write_set
-          .acquire_node_guard(btree, &left_sibbling_node_identifier);
+        let left_sibbling_guard = lock_set
+          .node_write_guard_for_hold(&left_sibbling_node_identifier);
 
-        if left_sibbling_guard.can_delete_without_becoming_deficient() {
-          return left_sibbling_node_identifier;
+        if left_sibbling_guard.node().can_delete_without_becoming_deficient() {
+          return left_sibbling_guard;
         }
       }
 
-      // Don't forget to release the guard in the write set.
-      //
-      // TODO: This is the first place I think I can't rely on RAII.
-      // Hmm...
-      write_set.drop_node_guard(&left_sibbling_node_identifier);
-
       // Since you can't rotate from the left sibbling, try using the
       // right sibbling. Prefer merging from the right.
-      write_set
-        .acquire_node_guard(btree, &right_sibbling_node_identifier);
-      right_sibbling_node_identifier
+      lock_set
+        .node_write_guard_for_hold(&right_sibbling_node_identifier)
     }
   }
 }

@@ -2,17 +2,18 @@ use super::{
   acquire_deletion_path, DeletionPathEntry, UnderflowActionResult,
 };
 use btree::BTree;
+use locking::LockSet;
 use std::sync::Arc;
 
-pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
+pub fn delete(btree: &Arc<BTree>, lock_set: &mut LockSet, key_to_delete: &str) {
   // Acquire locks.
-  let (mut deletion_path, mut write_set) =
-    acquire_deletion_path(btree, key_to_delete);
+  let mut deletion_path =
+    acquire_deletion_path(lock_set, key_to_delete);
 
   // Perform the delete at the LeafNode.
   {
-    let leaf_node = deletion_path
-      .last_node_mut_ref(&mut write_set)
+    let mut leaf_node_ref = deletion_path.last_node_mut_ref();
+    let leaf_node = leaf_node_ref
       .unwrap_leaf_node_mut_ref("deletion must happen at a leaf node");
 
     leaf_node.delete(key_to_delete);
@@ -36,7 +37,7 @@ pub fn delete(btree: &Arc<BTree>, key_to_delete: &str) {
     };
 
     // Execute the action.
-    let result = underflow_action.execute(btree, &mut write_set);
+    let result = underflow_action.execute(btree);
 
     // Action may have us stop if we hit a stable parent or consume the
     // root.

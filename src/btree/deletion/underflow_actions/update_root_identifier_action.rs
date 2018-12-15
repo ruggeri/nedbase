@@ -1,19 +1,18 @@
 use super::UnderflowActionResult;
-use btree::deletion::WriteSet;
+use locking::{LockSetNodeWriteGuard, LockSetRootIdentifierWriteGuard};
 
 pub struct UpdateRootIdentifierAction {
-  pub(super) root_node_identifier: String,
+  pub(super) root_identifier_guard: LockSetRootIdentifierWriteGuard,
+  pub(super) root_node_guard: LockSetNodeWriteGuard,
 }
 
 impl UpdateRootIdentifierAction {
   pub fn execute(
     &self,
-    write_set: &mut WriteSet,
   ) -> UnderflowActionResult {
     let new_root_identifier = {
       // First, get the root_node.
-      let root_node =
-        write_set.get_node_ref(&self.root_node_identifier);
+      let root_node = self.root_node_guard.node();
 
       // Next, if the root node is a leaf, there is nothing to do.
       if root_node.is_leaf_node() {
@@ -37,9 +36,9 @@ impl UpdateRootIdentifierAction {
     };
 
     // Now set the root identifier to finish the compaction.
-    let root_identifier_guard =
-      write_set.get_root_identifier_guard_mut_ref();
-    **root_identifier_guard = new_root_identifier;
+    let mut root_identifier =
+      self.root_identifier_guard.identifier_mut();
+    *root_identifier = new_root_identifier;
 
     // Now that we have a new root everything is completed.
     UnderflowActionResult::StopBubbling
