@@ -91,9 +91,12 @@ fn try_to_acquire_write_guard_path(
       lock_set.node_write_guard_for_hold(child_identifier)
     };
 
-    // TODO: If the node we just locked is stable we can release the
-    // prior locks. In that case we were just slightly overly
-    // pessimistic.
+    // If by fortune this child_guard has become stable, we can release
+    // all prior write locks.
+    if child_guard.node().can_grow_without_split() {
+      write_guards.clear();
+    }
+
     write_guards.push(child_guard.upcast());
   }
 
@@ -116,7 +119,14 @@ fn try_to_acquire_top_write_guard(
         lock_set.root_identifier_write_guard_for_hold();
       let root_node_guard = lock_set
         .node_write_guard_for_hold(&root_identifier_guard.identifier());
-      write_guards.push(root_identifier_guard.upcast());
+
+      // There is a chance that by fortune the root_node_guard did
+      // become stable. But assuming not, we must hold onto the root
+      // identifier guard.
+      if !root_node_guard.node().can_grow_without_split() {
+        write_guards.push(root_identifier_guard.upcast());
+      }
+
       write_guards.push(root_node_guard.upcast());
     }
 
@@ -126,8 +136,9 @@ fn try_to_acquire_top_write_guard(
       // or if the lowest stable node is the root, then at least the
       // root identifier.
       //
-      // Note that we take ownership of the parent read guard here, so
-      // it will be unlocked after write guard is acquired.
+      // Note that we have taken ownership of the parent read guard in
+      // the match arm, so it will be unlocked after write guard is
+      // acquired.
       let deepest_stable_parent = match parent_read_guard.downcast() {
         (Some(root_identifier), None) => {
           lock_set.node_write_guard_for_hold(&root_identifier)
@@ -139,7 +150,6 @@ fn try_to_acquire_top_write_guard(
               "a parent node must be an interior node",
             )
             .child_identifier_by_key(insert_key);
-
           lock_set.node_write_guard_for_hold(child_identifier)
         }
 
