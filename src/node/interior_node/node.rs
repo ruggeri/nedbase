@@ -1,6 +1,4 @@
-use btree::BTree;
 use node::Node;
-use node::{util::search_sorted_strings_for_str, SplitInfo};
 
 pub struct InteriorNode {
   // These fields are public in the `interior_node` module, as other
@@ -18,120 +16,13 @@ pub struct InteriorNode {
 }
 
 impl InteriorNode {
-  pub fn store(
-    btree: &BTree,
-    splits: Vec<String>,
-    child_identifiers: Vec<String>,
-  ) -> String {
-    let identifier = btree.get_new_identifier();
-    let node = InteriorNode {
-      identifier: identifier.clone(),
-      splits,
-      child_identifiers,
-      max_key_capacity: btree.max_key_capacity(),
-    };
-
-    btree.store_node(node.upcast());
-
-    identifier
-  }
-
-  pub fn store_new_root(
-    btree: &BTree,
-    split_info: SplitInfo,
-  ) -> String {
-    let identifier = btree.get_new_identifier();
-
-    let node = InteriorNode {
-      identifier: identifier.clone(),
-      splits: vec![split_info.new_median],
-      child_identifiers: vec![
-        split_info.new_left_identifier,
-        split_info.new_right_identifier,
-      ],
-      max_key_capacity: btree.max_key_capacity(),
-    };
-
-    btree.store_node(node.upcast());
-
-    identifier
-  }
-
-  pub fn can_delete_without_becoming_deficient(&self) -> bool {
-    if self.splits.is_empty() {
-      // Special case because else subtraction by one is dangerous!
-      return false;
-    }
-
-    !Node::is_deficient_size(
-      self.num_split_keys() - 1,
-      self.max_key_capacity,
-    )
-  }
-
-  pub fn can_grow_without_split(&self) -> bool {
-    self.num_split_keys() < self.max_key_capacity
-  }
-
-  pub fn child_identifier_by_key(&self, key: &str) -> &str {
-    let idx = match search_sorted_strings_for_str(&self.splits, key) {
-      Ok(idx) => idx,
-      Err(idx) => idx,
-    };
-
-    &self.child_identifiers[idx]
-  }
-
-  pub fn child_identifier_by_idx(&self, idx: usize) -> &str {
-    &self.child_identifiers[idx]
-  }
-
-  pub fn child_idx_by_key(&self, key: &str) -> usize {
-    match search_sorted_strings_for_str(&self.splits, key) {
-      Ok(idx) => idx,
-      Err(idx) => idx,
-    }
-  }
-
   pub fn identifier(&self) -> &str {
     &self.identifier
   }
 
-  pub fn is_deficient(&self) -> bool {
-    Node::is_deficient_size(
-      self.num_split_keys(),
-      self.max_key_capacity,
-    )
-  }
-
-  pub fn num_children(&self) -> usize {
-    self.child_identifiers.len()
-  }
-
-  pub fn num_split_keys(&self) -> usize {
-    self.splits.len()
-  }
-
-  pub fn sibbling_identifiers_for_idx(
-    &self,
-    idx: usize,
-  ) -> (Option<&str>, Option<&str>) {
-    let left_sibbling_identifier = if 0 < idx {
-      Some(self.child_identifier_by_idx(idx - 1))
-    } else {
-      None
-    };
-
-    let right_sibbling_identifier =
-      if idx < self.child_identifiers.len() - 1 {
-        Some(self.child_identifier_by_idx(idx + 1))
-      } else {
-        None
-      };
-
-    (left_sibbling_identifier, right_sibbling_identifier)
-  }
-
+  // It is sometimes useful to convert InteriorNode to a Node for
+  // purposes of storage in places where you wouldn't otherwise know
+  // what kind of Node you need.
   pub fn upcast(self) -> Node {
     Node::InteriorNode(self)
   }

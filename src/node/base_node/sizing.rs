@@ -1,5 +1,6 @@
 use super::Node;
 
+// These are methods common to InteriorNode and LeafNode about sizing.
 impl Node {
   pub fn can_delete_without_becoming_deficient(&self) -> bool {
     match self {

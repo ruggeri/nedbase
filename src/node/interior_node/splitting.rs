@@ -32,7 +32,6 @@ impl InteriorNode {
     self.insert_and_split(btree, child_split_info, old_child_idx)
   }
 
-  // TODO: Could this become a more simple `split` method?
   fn insert_and_split(
     &mut self,
     btree: &BTree,

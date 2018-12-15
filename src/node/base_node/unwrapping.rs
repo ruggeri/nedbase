@@ -1,6 +1,8 @@
 use super::Node;
 use node::{InteriorNode, LeafNode};
 
+// These are all methods that unwrap a Node into either an InteriorNode
+// or LeafNode.
 impl Node {
   pub fn unwrap_interior_node_ref(
     &self,

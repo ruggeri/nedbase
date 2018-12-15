@@ -2,6 +2,8 @@ use super::Node;
 use btree::BTree;
 use node::{InteriorNode, LeafNode};
 
+// These are methods common to InteriorNode and LeafNode for merging and
+// rotation.
 impl Node {
   pub fn merge_or_rotate_sibblings(
     btree: &BTree,
