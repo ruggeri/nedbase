@@ -1,6 +1,6 @@
 extern crate nedbase;
 
-use nedbase::{BTree, LockSet};
+use nedbase::{BTree, LockSet, TransactionMode};
 use std::sync::Arc;
 use std::thread;
 
@@ -31,7 +31,7 @@ fn perform_insertions(btree: &Arc<BTree>) {
   // Make lots and lots of insertions.
   let mut insertions = vec![];
   for _ in 0..NUM_INSERTIONS_PER_THREAD {
-    let mut lock_set = LockSet::new_write_lock_set(btree);
+    let mut lock_set = LockSet::new(btree, TransactionMode::ReadWrite);
 
     let insertion = btree.get_new_identifier();
     BTree::optimistic_insert(btree, &mut lock_set, &insertion);
@@ -40,7 +40,7 @@ fn perform_insertions(btree: &Arc<BTree>) {
 
   // Next, check that we can properly find what we have added.
   for insertion in insertions {
-    let mut lock_set = LockSet::new_write_lock_set(btree);
+    let mut lock_set = LockSet::new(btree, TransactionMode::ReadWrite);
 
     if !BTree::contains_key(&mut lock_set, &insertion) {
       println!("Dropped key: {}", insertion);

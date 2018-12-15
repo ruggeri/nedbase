@@ -1,6 +1,6 @@
 use super::{
   LockMode, LockSet, LockSetNodeReadGuard,
-  LockSetRootIdentifierReadGuard,
+  LockSetRootIdentifierReadGuard, LockSetValue,
 };
 use locking::{Guard, LockTarget, ReadGuard};
 use std::cell::RefCell;
@@ -44,7 +44,7 @@ impl LockSet {
     &mut self,
     lock_target: &LockTarget,
   ) -> Option<Rc<RefCell<Guard>>> {
-    let (_, guard) = &self.guards[lock_target];
+    let LockSetValue { guard, .. } = &self.guards[lock_target];
     guard.upgrade()
   }
 
@@ -63,10 +63,13 @@ impl LockSet {
     // need.
     let guard = Rc::new(guard);
 
+    let lock_set_value = LockSetValue {
+      lock_mode,
+      guard: Rc::downgrade(&guard),
+    };
+
     // Store a weak version in the map.
-    self
-      .guards
-      .insert(lock_target.clone(), (lock_mode, Rc::downgrade(&guard)));
+    self.guards.insert(lock_target.clone(), lock_set_value);
 
     guard
   }
@@ -85,11 +88,13 @@ impl LockSet {
     // need.
     let guard = Rc::new(guard);
 
+    let lock_set_value = LockSetValue {
+      lock_mode: LockMode::Read,
+      guard: Rc::downgrade(&guard),
+    };
+
     // Store a weak version in the map.
-    self.guards.insert(
-      lock_target.clone(),
-      (LockMode::Read, Rc::downgrade(&guard)),
-    );
+    self.guards.insert(lock_target.clone(), lock_set_value);
 
     guard
   }

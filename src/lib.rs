@@ -11,4 +11,4 @@ pub use btree::BTree;
 // TODO: I would rather present something named more like a
 // `Transaction` object. The `Transaction` would presumably manage the
 // `LockSet`.
-pub use locking::LockSet;
+pub use locking::{LockSet, TransactionMode};

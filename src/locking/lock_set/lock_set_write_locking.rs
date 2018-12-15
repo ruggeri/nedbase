@@ -1,6 +1,6 @@
 use super::{
   LockMode, LockSet, LockSetNodeWriteGuard,
-  LockSetRootIdentifierWriteGuard,
+  LockSetRootIdentifierWriteGuard, LockSetValue,
 };
 use locking::{Guard, LockTarget, TransactionMode, WriteGuard};
 use std::cell::RefCell;
@@ -64,11 +64,13 @@ impl LockSet {
     // need.
     let guard = Rc::new(guard);
 
+    let lock_set_value = LockSetValue {
+      lock_mode: LockMode::Write,
+      guard: Rc::downgrade(&guard),
+    };
+
     // Store a weak version in the map.
-    self.guards.insert(
-      lock_target.clone(),
-      (LockMode::Write, Rc::downgrade(&guard)),
-    );
+    self.guards.insert(lock_target.clone(), lock_set_value);
 
     guard
   }
@@ -77,7 +79,7 @@ impl LockSet {
     &mut self,
     lock_target: &LockTarget,
   ) -> Option<Rc<RefCell<Guard>>> {
-    let (lock_mode, guard) = &self.guards[lock_target];
+    let LockSetValue { lock_mode, guard } = &self.guards[lock_target];
 
     if self.tx_mode == TransactionMode::ReadOnly {
       panic!("cannot acquire read locks in ReadOnly mode!");
