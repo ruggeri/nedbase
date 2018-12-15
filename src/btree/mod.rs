@@ -2,7 +2,7 @@
 mod btree;
 mod deletion;
 mod insertion;
-mod reading;
+mod lookup;
 mod storage;
 
 // util is helpful in submodules too.
