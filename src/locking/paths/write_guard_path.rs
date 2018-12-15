@@ -1,10 +1,17 @@
 use locking::LockSetWriteGuard;
 
+// A WriteGuardPath is a sequence of `LockSetWriteGuard`s going down a
+// `BTree` toward a `LeafNode`. It is possible for the path to start in
+// the middle of the `BTree`. For instance, the top of the path might be
+// the deepest stable ancestor of the node to be updated.
 pub struct WriteGuardPath {
   write_guards: Vec<LockSetWriteGuard>,
 }
 
-#[allow(clippy::new_without_default, clippy::new_without_default_derive)]
+#[allow(
+  clippy::new_without_default,
+  clippy::new_without_default_derive
+)]
 impl WriteGuardPath {
   pub fn new() -> WriteGuardPath {
     WriteGuardPath {
@@ -16,7 +23,10 @@ impl WriteGuardPath {
     self.write_guards.clear();
   }
 
-  pub fn peek_deepest_lock(&self, msg: &'static str) -> &LockSetWriteGuard {
+  pub fn peek_deepest_lock(
+    &self,
+    msg: &'static str,
+  ) -> &LockSetWriteGuard {
     self.write_guards.last().expect(msg)
   }
 

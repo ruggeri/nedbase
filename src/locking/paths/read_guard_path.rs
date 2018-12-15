@@ -1,5 +1,9 @@
 use locking::LockSetReadGuard;
 
+// A ReadGuardPath is a path of `LockSetReadGuard`, typically acquired
+// from the root down to a `LeafNode`. This class is helpful if you are
+// holding many read locks as you search for the deepest stable ancestor
+// of a LeafNode.
 pub struct ReadGuardPath {
   read_guards: Vec<LockSetReadGuard>,
 }
@@ -20,16 +24,11 @@ impl ReadGuardPath {
     self.read_guards.clear();
   }
 
-  pub fn len(&self) -> usize {
-    self.read_guards.len()
-  }
-
-  pub fn peek_deepest_lock(&self, msg: &'static str) -> &LockSetReadGuard {
+  pub fn peek_deepest_lock(
+    &self,
+    msg: &'static str,
+  ) -> &LockSetReadGuard {
     self.read_guards.last().expect(msg)
-  }
-
-  pub fn peek_head_lock(&self, msg: &'static str) -> &LockSetReadGuard {
-    self.read_guards.get(0).as_ref().expect(msg)
   }
 
   pub fn pop(&mut self, msg: &'static str) -> LockSetReadGuard {
