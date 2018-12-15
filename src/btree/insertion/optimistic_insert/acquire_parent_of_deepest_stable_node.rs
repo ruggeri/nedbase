@@ -1,6 +1,5 @@
-use btree::{util, BTree};
+use btree::util;
 use locking::{LockSet, LockSetReadGuard};
-use std::sync::Arc;
 
 // Acquires the parent of the deepest stable node. The deepest stable
 // parent is the highest node that may need to be modified by an
