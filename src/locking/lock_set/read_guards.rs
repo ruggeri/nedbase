@@ -3,6 +3,21 @@ use node::Node;
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
+// The idea of the LockSetReadGuards is that when some code asks for a
+// read lock, you *might* give it a write lock instead, if either:
+//
+// 1. They will do a read to the node, but you are in ReadWrite mode,
+// 2. They want to do a temporary read to the node, but you already have
+//    a write lock on the node.
+//
+// Therefore, LockSetReadGuard abstracts over the more primitive notion
+// of `Guard`.
+//
+// Note that we borrow from a `RefCell`. Why? That's because if the same
+// transaction contains multiple queries which overlap in locks they
+// acquire, they will hold the same locks. That is fine, but they must
+// not *use* the same locks simultaneously.
+
 #[derive(Clone)]
 pub struct LockSetReadGuard {
   guard: Rc<RefCell<Guard>>,
@@ -36,17 +51,18 @@ impl LockSetReadGuard {
     })
   }
 
+  // TODO: This method is a disaster.
   pub fn downcast(&self) -> (Option<Ref<String>>, Option<Ref<Node>>) {
     match &(*self.guard.borrow()) {
       Guard::Read(read_guard) => match read_guard {
-        ReadGuard::NodeReadGuard(node_guard) => (
+        ReadGuard::NodeReadGuard(_) => (
           None,
           Some(self.unwrap_node_ref(
             "We just verified we're a node read guard...",
           )),
         ),
 
-        ReadGuard::RootIdentifierReadGuard(root_identifier_guard) => (
+        ReadGuard::RootIdentifierReadGuard(_) => (
           Some(self.unwrap_root_identifier_ref(
             "We just verified we're a RootIdentifierReadGuard...",
           )),
@@ -55,14 +71,14 @@ impl LockSetReadGuard {
       },
 
       Guard::Write(write_guard) => match write_guard {
-        WriteGuard::NodeWriteGuard(node_guard) => (
+        WriteGuard::NodeWriteGuard(_) => (
           None,
           Some(self.unwrap_node_ref(
             "We just verified we're a node read guard...",
           )),
         ),
 
-        WriteGuard::RootIdentifierWriteGuard(root_identifier_guard) => {
+        WriteGuard::RootIdentifierWriteGuard(_) => {
           (
             Some(self.unwrap_root_identifier_ref(
               "We just verified we're a RootIdentifierReadGuard...",
@@ -88,11 +104,17 @@ impl LockSetNodeReadGuard {
     })
   }
 
+  // This lets them drop the lock early if they way, without having to
+  // use std::mem::drop.
+  //
+  // Note that it won't necessarily release the lock! For instance, if
+  // another query in the transaction holds the lock, it will not be
+  // released!
+  pub fn release(self) {}
+
   pub fn upcast(self) -> LockSetReadGuard {
     LockSetReadGuard::from_guard(self.guard)
   }
-
-  pub fn release(self) {}
 }
 
 impl LockSetRootIdentifierReadGuard {

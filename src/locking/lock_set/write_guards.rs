@@ -1,7 +1,16 @@
-use locking::{Guard, ReadGuard, WriteGuard};
+use locking::{Guard, WriteGuard};
 use node::Node;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
+
+// LockSetWriteGuard is simpler than LockSetReadGuard because there is
+// only one kind of primitive `Guard` backing the LockSetWriteGuard: a
+// `WriteGuard`.
+//
+// Note that we borrow and borrow_mut from a `RefCell`. Why? That's
+// because if the same transaction contains multiple queries which
+// overlap in locks they acquire, they will hold the same locks. That is
+// fine, but they must not *use* the same locks simultaneously.
 
 #[derive(Clone)]
 pub struct LockSetWriteGuard {
@@ -23,6 +32,8 @@ impl LockSetWriteGuard {
     LockSetWriteGuard { guard }
   }
 
+  // TODO: I don't love that we are handing out the primitive
+  // WriteGuards...
   pub fn guard(&self) -> Ref<WriteGuard> {
     Ref::map(self.guard.borrow(), |guard| {
       guard.unwrap_write_guard_ref(
