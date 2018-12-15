@@ -3,7 +3,16 @@ use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+// A BTree holds the map from identifiers to `Arc<RwLock<Node>>`s.
+//
+// Many threads can share the `RwLock<Node>`, but of course only one can
+// lock it for reading at any given time.
+//
+// The BTree also knows the entry point into the nodes: the root
+// identifier.
+
 type IdentifierToNodeArcLockMap = HashMap<String, Arc<RwLock<Node>>>;
+
 pub struct BTree {
   // Keeps track of which node is the root node.
   pub(in btree) root_identifier_lock: RwLock<String>,
@@ -44,6 +53,8 @@ impl BTree {
 
     match node_lock_option {
       Some(node_lock) => Arc::clone(node_lock),
+      // The theory is that the Arc<RwLock<Node>> might not be here
+      // because it is paged onto the disk.
       None => panic!("Eventually should fetch from disk."),
     }
   }

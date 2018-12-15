@@ -1,11 +1,10 @@
 use btree::BTree;
+use constants::IDENTIFIER_LENGTH;
 use node::Node;
 use parking_lot::RwLock;
 use rand::{distributions::Alphanumeric, prelude::*};
 use std::iter;
 use std::sync::Arc;
-
-const IDENTIFIER_LENGTH: usize = 8;
 
 // TODO: eventually this should become its own kind of storage class.
 impl BTree {
