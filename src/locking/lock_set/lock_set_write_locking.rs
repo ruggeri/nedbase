@@ -1,8 +1,10 @@
 use super::{
-  LockMode, LockSet, LockSetNodeWriteGuard,
-  LockSetRootIdentifierWriteGuard, LockSetValue,
+  LockSet, LockSetNodeWriteGuard, LockSetRootIdentifierWriteGuard,
+  LockSetValue,
 };
-use locking::{Guard, LockTarget, TransactionMode, WriteGuard};
+use locking::{
+  Guard, LockMode, LockTarget, TransactionMode, WriteGuard,
+};
 use std::cell::RefCell;
 use std::rc::Rc;
 

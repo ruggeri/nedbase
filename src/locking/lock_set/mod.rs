@@ -1,4 +1,3 @@
-mod lock_mode;
 #[allow(clippy::module_inception)]
 mod lock_set;
 mod lock_set_read_locking;
@@ -10,7 +9,6 @@ mod read_guards;
 mod write_guards;
 
 // These are for internal use of LockSet.
-pub(self) use self::lock_mode::LockMode;
 pub(self) use self::lock_set_value::LockSetValue;
 
 pub use self::lock_set::LockSet;

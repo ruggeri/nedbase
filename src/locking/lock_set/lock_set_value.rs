@@ -1,5 +1,4 @@
-use super::LockMode;
-use locking::Guard;
+use locking::{Guard, LockMode};
 use std::cell::RefCell;
 use std::rc::Weak;
 

@@ -1,8 +1,8 @@
 use super::{
-  LockMode, LockSet, LockSetNodeReadGuard,
-  LockSetRootIdentifierReadGuard, LockSetValue,
+  LockSet, LockSetNodeReadGuard, LockSetRootIdentifierReadGuard,
+  LockSetValue,
 };
-use locking::{Guard, LockTarget, ReadGuard};
+use locking::{Guard, LockMode, LockTarget, ReadGuard};
 use std::cell::RefCell;
 use std::rc::Rc;
 
