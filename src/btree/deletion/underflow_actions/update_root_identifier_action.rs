@@ -10,7 +10,7 @@ impl UpdateRootIdentifierAction {
   pub fn execute(&self) -> UnderflowActionResult {
     let new_root_identifier = {
       // First, get the root_node.
-      let root_node = self.root_node_guard.node();
+      let root_node = self.root_node_guard.unwrap_node_ref();
 
       // Next, if the root node is a leaf, there is nothing to do.
       if root_node.is_leaf_node() {

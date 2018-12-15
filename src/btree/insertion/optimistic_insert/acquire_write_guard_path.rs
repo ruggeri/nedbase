@@ -93,7 +93,7 @@ fn try_to_acquire_write_guard_path(
 
     // If by fortune this child_guard has become stable, we can release
     // all prior write locks.
-    if child_guard.node().can_grow_without_split() {
+    if child_guard.unwrap_node_ref().can_grow_without_split() {
       write_guards.clear();
     }
 
@@ -123,7 +123,7 @@ fn try_to_acquire_top_write_guard(
       // There is a chance that by fortune the root_node_guard did
       // become stable. But assuming not, we must hold onto the root
       // identifier guard.
-      if !root_node_guard.node().can_grow_without_split() {
+      if !root_node_guard.unwrap_node_ref().can_grow_without_split() {
         write_guards.push(root_identifier_guard.upcast());
       }
 
@@ -156,7 +156,10 @@ fn try_to_acquire_top_write_guard(
         _ => panic!("Guards are always for a RootIdentifier or a Node"),
       };
 
-      if !deepest_stable_parent.node().can_grow_without_split() {
+      if !deepest_stable_parent
+        .unwrap_node_ref()
+        .can_grow_without_split()
+      {
         // It is possible that because of concurrent insertions, this
         // node is no longer stable. Then we must start all over again!
         return WriteGuardPathAcquisitionResult::TopNodeWentUnstable;

@@ -83,8 +83,9 @@ fn begin_deletion_path(
   // happened, we will have to start everything again...
   let is_still_stable = {
     let last_node_guard_of_path = deletion_path.last_node_guard_ref();
-    let last_node_of_path = last_node_guard_of_path.node();
-    last_node_of_path.can_delete_without_becoming_deficient()
+    last_node_guard_of_path
+      .unwrap_node_ref()
+      .can_delete_without_becoming_deficient()
   };
 
   if is_still_stable {
@@ -101,12 +102,13 @@ fn extend_deletion_path(
   path: &mut DeletionPath,
   key_to_delete: &str,
 ) {
-  // Who is the parent?
+  // Who is the parent? We clone this guard because we will store it
+  // separately in the new PathEntry we will create.
   let parent_node_guard = path.last_node_guard_ref().clone();
 
   // Who is the child? Acquire it.
   let (child_idx, child_node_guard) = {
-    let parent_node_ref = parent_node_guard.node();
+    let parent_node_ref = parent_node_guard.unwrap_node_ref();
     let parent_node = parent_node_ref
       .unwrap_interior_node_ref("must not descend through leaves");
 
@@ -121,7 +123,7 @@ fn extend_deletion_path(
 
   // Who are the sibblings?
   let sibbling_node_guard = {
-    let parent_node_ref = parent_node_guard.node();
+    let parent_node_ref = parent_node_guard.unwrap_node_ref();
     let sibbling_node_identifiers = parent_node_ref
       .unwrap_interior_node_ref("must not descend through leaves")
       .sibbling_identifiers_for_idx(child_idx);
@@ -170,7 +172,7 @@ fn acquire_sibbling_node(
           .node_write_guard_for_hold(&left_sibbling_node_identifier);
 
         if left_sibbling_guard
-          .node()
+          .unwrap_node_ref()
           .can_delete_without_becoming_deficient()
         {
           return left_sibbling_guard;

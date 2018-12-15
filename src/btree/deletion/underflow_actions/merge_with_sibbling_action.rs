@@ -12,9 +12,10 @@ pub struct MergeWithSibblingAction {
 impl MergeWithSibblingAction {
   pub fn execute(mut self, btree: &BTree) -> UnderflowActionResult {
     // Get the write locks you've acquired on everyone.
-    let mut parent_node = self.parent_node_guard.node_mut();
-    let mut child_node = self.child_node_guard.node_mut();
-    let mut sibbling_node = self.sibbling_node_guard.node_mut();
+    let mut parent_node = self.parent_node_guard.unwrap_node_mut_ref();
+    let mut child_node = self.child_node_guard.unwrap_node_mut_ref();
+    let mut sibbling_node =
+      self.sibbling_node_guard.unwrap_node_mut_ref();
 
     // And then have the parent perform the merge or rotation.
     parent_node

@@ -3,6 +3,12 @@ use locking::{LockSet, LockSetNodeWriteGuard};
 use node::Node;
 use std::cell::{Ref, RefMut};
 
+// The DeletionPath consists of all the nodes that get merged (along
+// with their merge sibbling), plus eventually the deepest stable
+// ancestor (which is mutated by its children's merge). If there is no
+// stable ancestor, then the deletion path goes all the way to the root
+// identifier.
+
 pub struct DeletionPath {
   entries: Vec<DeletionPathEntry>,
 }
@@ -57,12 +63,12 @@ impl DeletionPath {
 
   // The last node that was added to this path.
   pub fn last_node_ref(&self) -> Ref<Node> {
-    self.last_node_guard_ref().node()
+    self.last_node_guard_ref().unwrap_node_ref()
   }
 
   // The last node that was added to this path.
   pub fn last_node_mut_ref(&mut self) -> RefMut<Node> {
-    self.last_node_guard_mut_ref().node_mut()
+    self.last_node_guard_mut_ref().unwrap_node_mut_ref()
   }
 
   // The last entry that was added to this path.

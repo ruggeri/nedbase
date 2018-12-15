@@ -56,8 +56,8 @@ impl BTree {
     // temporary read guard on the leaf, and reacquire. This is
     // important if we are doing a lookup in a ReadWrite transaction.
     //
-    // We could probably search again in the parent for this identifier
-    // without doing a String::from. But this seems okay.
+    // TODO: We could probably search again in the parent for this
+    // identifier without doing a String::from. But this seems okay.
     let target_identifier =
       String::from(current_node_guard.unwrap_node_ref().identifier());
     current_node_guard.release();

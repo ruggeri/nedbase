@@ -19,7 +19,10 @@ pub fn pessimistic_insert(
 
     // If root node won't need to split, we can release the write
     // guard on the root identifier.
-    if current_node_guard.node().can_grow_without_split() {
+    if current_node_guard
+      .unwrap_node_ref()
+      .can_grow_without_split()
+    {
       write_guards.push(current_node_guard.upcast());
     } else {
       write_guards.push(identifier_guard.upcast());
@@ -54,7 +57,10 @@ pub fn pessimistic_insert(
 
     // Whenever we encounter a stable node, we can clear all previously
     // acquired write locks.
-    if current_node_guard.node().can_grow_without_split() {
+    if current_node_guard
+      .unwrap_node_ref()
+      .can_grow_without_split()
+    {
       write_guards.clear();
     }
 
