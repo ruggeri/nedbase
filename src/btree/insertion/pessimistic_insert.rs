@@ -63,14 +63,17 @@ pub fn pessimistic_insert(
   }
 
   // After descending all the way, perform the insert at the leaf.
-  let mut last_guard = write_guards
-    .pop("should have acquired at least one write guard for insertion");
-  let mut last_node =
-    last_guard.unwrap_node_mut_ref("should be inserting at a node");
+  let mut insertion_result = {
+    let mut last_guard = write_guards.pop(
+      "should have acquired at least one write guard for insertion",
+    );
+    let mut last_node =
+      last_guard.unwrap_node_mut_ref("should be inserting at a node");
 
-  let mut insertion_result = last_node
-    .unwrap_leaf_node_mut_ref("insertion should happen at leaf node")
-    .insert(btree, String::from(insert_key));
+    last_node
+      .unwrap_leaf_node_mut_ref("insertion should happen at leaf node")
+      .insert(btree, String::from(insert_key))
+  };
 
   // Bubble up. For as long as we are splitting children, insert the
   // split nodes into their parent.
