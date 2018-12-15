@@ -9,3 +9,4 @@ pub(self) mod locking;
 pub(self) mod node;
 
 pub use btree::BTree;
+pub use locking::LockSet;

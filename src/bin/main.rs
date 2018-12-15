@@ -1,11 +1,11 @@
 extern crate nedbase;
 
-use nedbase::BTree;
+use nedbase::{BTree, LockSet};
 use std::sync::Arc;
 use std::thread;
 
 const MAX_KEYS_PER_NODE: usize = 1024;
-const NUM_INSERTIONS_PER_THREAD: u32 = 10_000;
+const NUM_INSERTIONS_PER_THREAD: u32 = 20_000;
 const NUM_THREADS: u32 = 32;
 
 fn main() {
@@ -37,8 +37,9 @@ fn perform_insertions(btree: &Arc<BTree>) {
   }
 
   // Next, check that we can properly find what we have added.
+  let mut lock_set = LockSet::new_write_lock_set(btree);
   for insertion in insertions {
-    if !BTree::contains_key(btree, &insertion) {
+    if !BTree::contains_key(&mut lock_set, &insertion) {
       println!("Dropped key: {}", insertion);
       continue;
     }
