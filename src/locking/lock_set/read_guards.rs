@@ -78,14 +78,12 @@ impl LockSetReadGuard {
           )),
         ),
 
-        WriteGuard::RootIdentifierWriteGuard(_) => {
-          (
-            Some(self.unwrap_root_identifier_ref(
-              "We just verified we're a RootIdentifierReadGuard...",
-            )),
-            None,
-          )
-        }
+        WriteGuard::RootIdentifierWriteGuard(_) => (
+          Some(self.unwrap_root_identifier_ref(
+            "We just verified we're a RootIdentifierReadGuard...",
+          )),
+          None,
+        ),
       },
     }
   }
