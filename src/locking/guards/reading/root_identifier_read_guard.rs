@@ -1,5 +1,5 @@
+use super::ReadGuard;
 use btree::BTree;
-use locking::ReadGuard;
 use parking_lot::RwLockReadGuard;
 use std::ops::Deref;
 use std::sync::Arc;

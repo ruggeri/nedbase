@@ -1,5 +1,5 @@
+use super::ReadGuard;
 use btree::BTree;
-use locking::ReadGuard;
 use node::{InteriorNode, LeafNode, Node};
 use parking_lot::{RwLock, RwLockReadGuard};
 use std::ops::Deref;

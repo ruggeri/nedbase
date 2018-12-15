@@ -1,5 +1,5 @@
+use super::WriteGuard;
 use btree::BTree;
-use locking::WriteGuard;
 use node::Node;
 use parking_lot::{RwLock, RwLockWriteGuard};
 use std::ops::{Deref, DerefMut};

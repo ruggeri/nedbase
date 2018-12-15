@@ -1,4 +1,4 @@
-use locking::{ReadGuard, WriteGuard};
+use super::{ReadGuard, WriteGuard};
 use node::Node;
 
 pub enum Guard {

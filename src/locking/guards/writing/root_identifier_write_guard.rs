@@ -1,5 +1,5 @@
+use super::WriteGuard;
 use btree::BTree;
-use locking::WriteGuard;
 use parking_lot::RwLockWriteGuard;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;

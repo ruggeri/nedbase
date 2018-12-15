@@ -1,5 +1,6 @@
+use super::{NodeReadGuard, RootIdentifierReadGuard};
 use btree::BTree;
-use locking::{LockTarget, NodeReadGuard, RootIdentifierReadGuard};
+use locking::LockTarget;
 use std::sync::Arc;
 
 pub enum ReadGuard {
