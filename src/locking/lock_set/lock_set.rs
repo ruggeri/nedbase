@@ -36,26 +36,32 @@ impl LockSet {
 
   pub fn node_read_guard_for_hold(&mut self, identifier: &str) -> LockSetNodeReadGuard {
     let guard = self.read_guard_for_hold(&LockTarget::Node(String::from(identifier)));
-    let unwrap_msg = "Using LockTarget::Node should ensure a Node guard is acquired";
-    LockSetNodeReadGuard::from_guard(guard, unwrap_msg)
+    LockSetNodeReadGuard::from_guard(guard)
   }
 
   pub fn root_identifier_read_guard_for_hold(&mut self) -> LockSetRootIdentifierReadGuard {
     let guard = self.read_guard_for_hold(&LockTarget::RootIdentifier);
-    let unwrap_msg = "Using LockTarget::RootIdentifier should ensure a RootIdentifier guard is acquired";
-    LockSetRootIdentifierReadGuard::from_guard(guard, unwrap_msg)
+    LockSetRootIdentifierReadGuard::from_guard(guard)
+  }
+
+  pub fn node_read_guard_for_temp(&mut self, identifier: &str) -> LockSetNodeReadGuard {
+    let guard = self.read_guard_for_temp(&LockTarget::Node(String::from(identifier)));
+    LockSetNodeReadGuard::from_guard(guard)
+  }
+
+  pub fn root_identifier_read_guard_for_temp(&mut self) -> LockSetRootIdentifierReadGuard {
+    let guard = self.read_guard_for_temp(&LockTarget::RootIdentifier);
+    LockSetRootIdentifierReadGuard::from_guard(guard)
   }
 
   pub fn node_write_guard_for_hold(&mut self, identifier: &str) -> LockSetNodeWriteGuard {
     let guard = self.write_guard_for_hold(&LockTarget::Node(String::from(identifier)));
-    let unwrap_msg = "Using LockTarget::Node should ensure a Node guard is acquired";
-    LockSetNodeWriteGuard::from_guard(guard, unwrap_msg)
+    LockSetNodeWriteGuard::from_guard(guard)
   }
 
   pub fn root_identifier_write_guard_for_hold(&mut self) -> LockSetRootIdentifierWriteGuard {
     let guard = self.write_guard_for_hold(&LockTarget::RootIdentifier);
-    let unwrap_msg = "Using LockTarget::RootIdentifier should ensure a RootIdentifier guard is acquired";
-    LockSetRootIdentifierWriteGuard::from_guard(guard, unwrap_msg)
+    LockSetRootIdentifierWriteGuard::from_guard(guard)
   }
 
   fn read_guard_for_hold(&mut self, lock_target: &LockTarget) -> Rc<RefCell<Guard>> {
