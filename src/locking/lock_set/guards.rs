@@ -89,14 +89,14 @@ impl LockSetWriteGuard {
   pub fn guard(&self) -> Ref<WriteGuard> {
     Ref::map(
       self.guard.borrow(),
-      |guard| guard.unwrap_write_guard("LockSetWriteGuard must hold WriteGuard")
+      |guard| guard.unwrap_write_guard_ref("LockSetWriteGuard must hold WriteGuard")
     )
   }
 
   pub fn guard_mut(&mut self) -> RefMut<WriteGuard> {
     RefMut::map(
       self.guard.borrow_mut(),
-      |guard| guard.unwrap_write_guard_mut("LockSetWriteGuard must hold WriteGuard")
+      |guard| guard.unwrap_write_guard_mut_ref("LockSetWriteGuard must hold WriteGuard")
     )
   }
 
