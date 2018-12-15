@@ -2,7 +2,10 @@ use locking::{LockSet, LockSetReadGuard, ReadGuardPath};
 use node::Node;
 
 // Finds highest lock target that may need to be mutated by an
-// operation.
+// operation. The test is some kind of stability check.
+//
+// This code will *only* take temporary locks. It is not safe to use the
+// result for reading a value.
 pub fn acquire_parent_of_deepest_node_meeting_test<F>(
   lock_set: &mut LockSet,
   key: &str,
@@ -47,7 +50,7 @@ where
           "should be descending through InteriorNode",
         )
         .child_identifier_by_key(key);
-      lock_set.node_read_guard_for_hold(child_identifier)
+      lock_set.node_read_guard_for_temp(child_identifier)
     };
 
     // Whenever we encounter a stable node, we can clear all but the
@@ -57,8 +60,9 @@ where
     // the read lock on the target stable node, so that we can try to
     // reacquire a write lock.
     //
-    // Holding a read lock on its parent means that the target of the
-    // write lock will still be where the value should live.
+    // Temporarily holding a read lock on its parent means that the
+    // target of the write lock will still be where the value should
+    // live.
     if stability_check(&(*current_node_guard.unwrap_node_ref())) {
       // See how I shuffle the parent guard? Ugh.
       let last_guard =
@@ -68,7 +72,7 @@ where
     }
 
     // Regardless whether we have encountered a stable node, we will
-    // continue to hold this lock.
+    // continue to hold this lock (for now).
     read_guards.push(current_node_guard.upcast());
   }
 
