@@ -82,9 +82,7 @@ fn begin_deletion_path(
   // We must check: did the target node go unstable on us? If that
   // happened, we will have to start everything again...
   let is_still_stable = {
-    let last_node_guard_of_path = deletion_path.last_node_guard_ref();
-    last_node_guard_of_path
-      .unwrap_node_ref()
+    deletion_path.last_node_ref()
       .can_delete_without_becoming_deficient()
   };
 

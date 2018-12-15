@@ -49,42 +49,19 @@ impl DeletionPath {
     }
   }
 
-  // The last node that was added to this path.
+  // These are a bunch of public methods to access the back of the
+  // path.
+
   pub fn last_node_guard_ref(&self) -> &LockSetNodeWriteGuard {
     self.last_path_entry_ref().path_node_guard()
   }
 
-  // The last node that was added to this path.
-  pub fn last_node_guard_mut_ref(
-    &mut self,
-  ) -> &mut LockSetNodeWriteGuard {
-    self.last_path_entry_mut_ref().path_node_guard_mut()
-  }
-
-  // The last node that was added to this path.
   pub fn last_node_ref(&self) -> Ref<Node> {
     self.last_node_guard_ref().unwrap_node_ref()
   }
 
-  // The last node that was added to this path.
   pub fn last_node_mut_ref(&mut self) -> RefMut<Node> {
     self.last_node_guard_mut_ref().unwrap_node_mut_ref()
-  }
-
-  // The last entry that was added to this path.
-  pub fn last_path_entry_ref(&self) -> &DeletionPathEntry {
-    self
-      .entries
-      .last()
-      .expect("path was empty: cannot get last entry")
-  }
-
-  // The last entry that was added to this path.
-  pub fn last_path_entry_mut_ref(&mut self) -> &mut DeletionPathEntry {
-    self
-      .entries
-      .last_mut()
-      .expect("path was empty: cannot get last entry")
   }
 
   // Pops the most recent entry.
@@ -98,5 +75,28 @@ impl DeletionPath {
   // Pushes on a new entry.
   pub fn push(&mut self, path_entry: DeletionPathEntry) {
     self.entries.push(path_entry);
+  }
+
+  // PRIVATE METHODS. These ones are just helpers for the public facing
+  // methods to access the back of the path.
+
+  fn last_node_guard_mut_ref(
+    &mut self,
+  ) -> &mut LockSetNodeWriteGuard {
+    self.last_path_entry_mut_ref().path_node_guard_mut()
+  }
+
+  fn last_path_entry_mut_ref(&mut self) -> &mut DeletionPathEntry {
+    self
+      .entries
+      .last_mut()
+      .expect("path was empty: cannot get last entry")
+  }
+
+  fn last_path_entry_ref(&self) -> &DeletionPathEntry {
+    self
+      .entries
+      .last()
+      .expect("path was empty: cannot get last entry")
   }
 }
