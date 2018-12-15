@@ -59,7 +59,7 @@ where
     //
     // Holding a read lock on its parent means that the target of the
     // write lock will still be where the value should live.
-    if stability_check(&(*current_node_guard.node())) {
+    if stability_check(&(*current_node_guard.unwrap_node_ref())) {
       // See how I shuffle the parent guard? Ugh.
       let last_guard =
         read_guards.pop("should never run out of read locks");

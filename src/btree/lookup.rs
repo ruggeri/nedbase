@@ -4,17 +4,21 @@ use locking::{LockSet, LockSetNodeReadGuard};
 impl BTree {
   pub fn contains_key(lock_set: &mut LockSet, key: &str) -> bool {
     let guard = BTree::find_leaf_for_key(lock_set, key);
-    let node = guard.node();
+    let node = guard
+      .unwrap_leaf_node_ref("find_leaf_for_key must return leaf node");
 
-    node
-      .unwrap_leaf_node_ref("find_leaf_for_key must return leaf node")
-      .contains_key(key)
+    node.contains_key(key)
   }
 
   pub fn find_leaf_for_key(
     lock_set: &mut LockSet,
     key: &str,
   ) -> LockSetNodeReadGuard {
+    // We will only assign to _parent_guard, but it is important to hold
+    // onto.
+    //
+    // We descend down the tree, hand-over-hand, taking temporary read
+    // locks.
     let (mut _parent_guard, mut current_node_guard) = {
       let root_identifier_guard =
         lock_set.root_identifier_read_guard_for_temp();
@@ -25,19 +29,21 @@ impl BTree {
     };
 
     loop {
-      if current_node_guard.node().is_leaf_node() {
+      // If we hit a LeafNode we are done descending.
+      if current_node_guard.unwrap_node_ref().is_leaf_node() {
         break;
       }
 
-      // Notice how I do the hand-over-hand locking here. This happens
-      // because of reassignment to current_node_guard
+      // Drop the parent guard before trying to acquiring the next child
+      // on the path.
+      _parent_guard.release();
+
       let child_guard = {
-        let current_node = current_node_guard.node();
-        let child_identifier = current_node
-          .unwrap_interior_node_ref(
-            "must not try to descend through leaf node",
-          )
-          .child_identifier_by_key(key);
+        let current_node = current_node_guard.unwrap_interior_node_ref(
+          "must not try to descend through leaf node",
+        );
+        let child_identifier =
+          current_node.child_identifier_by_key(key);
 
         lock_set.node_read_guard_for_temp(child_identifier)
       };
@@ -46,10 +52,15 @@ impl BTree {
       current_node_guard = child_guard;
     }
 
+    // Now that we are all finished descending, we will release the
+    // temporary read guard on the leaf, and reacquire. This is
+    // important if we are doing a lookup in a ReadWrite transaction.
+    //
+    // We could probably search again in the parent for this identifier
+    // without doing a String::from. But this seems okay.
     let target_identifier =
-      String::from(current_node_guard.node().identifier());
+      String::from(current_node_guard.unwrap_node_ref().identifier());
     current_node_guard.release();
-
     lock_set.node_read_guard_for_hold(&target_identifier)
   }
 }

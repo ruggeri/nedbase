@@ -1,5 +1,5 @@
 use locking::{Guard, ReadGuard, WriteGuard};
-use node::Node;
+use node::{InteriorNode, LeafNode, Node};
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
@@ -37,6 +37,14 @@ impl LockSetReadGuard {
   pub fn from_guard(guard: Rc<RefCell<Guard>>) -> LockSetReadGuard {
     LockSetReadGuard { guard }
   }
+
+  // This lets them drop the lock early if they way, without having to
+  // use std::mem::drop.
+  //
+  // Note that it won't necessarily release the lock! For instance, if
+  // another query in the transaction holds the lock, it will not be
+  // released!
+  pub fn release(self) {}
 
   pub fn unwrap_node_ref(&self, msg: &'static str) -> Ref<Node> {
     Ref::map(self.guard.borrow(), |guard| guard.unwrap_node_ref(msg))
@@ -94,14 +102,6 @@ impl LockSetNodeReadGuard {
     LockSetNodeReadGuard { guard }
   }
 
-  pub fn node(&self) -> Ref<Node> {
-    Ref::map(self.guard.borrow(), |guard| {
-      guard.unwrap_node_ref(
-        "Guard ref in LockSetNodeReadGuard doesn't hold Node?",
-      )
-    })
-  }
-
   // This lets them drop the lock early if they way, without having to
   // use std::mem::drop.
   //
@@ -109,6 +109,40 @@ impl LockSetNodeReadGuard {
   // another query in the transaction holds the lock, it will not be
   // released!
   pub fn release(self) {}
+
+  pub fn unwrap_interior_node_ref(
+    &self,
+    msg: &'static str,
+  ) -> Ref<InteriorNode> {
+    Ref::map(self.guard.borrow(), |guard| {
+      guard
+        .unwrap_node_ref(
+          "Guard ref in LockSetNodeReadGuard doesn't hold Node?",
+        )
+        .unwrap_interior_node_ref(msg)
+    })
+  }
+
+  pub fn unwrap_leaf_node_ref(
+    &self,
+    msg: &'static str,
+  ) -> Ref<LeafNode> {
+    Ref::map(self.guard.borrow(), |guard| {
+      guard
+        .unwrap_node_ref(
+          "Guard ref in LockSetNodeReadGuard doesn't hold Node?",
+        )
+        .unwrap_leaf_node_ref(msg)
+    })
+  }
+
+  pub fn unwrap_node_ref(&self) -> Ref<Node> {
+    Ref::map(self.guard.borrow(), |guard| {
+      guard.unwrap_node_ref(
+        "Guard ref in LockSetNodeReadGuard doesn't hold Node?",
+      )
+    })
+  }
 
   pub fn upcast(self) -> LockSetReadGuard {
     LockSetReadGuard::from_guard(self.guard)
