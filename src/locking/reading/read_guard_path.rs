@@ -1,7 +1,7 @@
-use locking::ReadGuard;
+use locking::LockSetReadGuard;
 
 pub struct ReadGuardPath {
-  read_guards: Vec<ReadGuard>,
+  read_guards: Vec<LockSetReadGuard>,
 }
 
 #[allow(
@@ -24,19 +24,19 @@ impl ReadGuardPath {
     self.read_guards.len()
   }
 
-  pub fn peek_deepest_lock(&self, msg: &'static str) -> &ReadGuard {
+  pub fn peek_deepest_lock(&self, msg: &'static str) -> &LockSetReadGuard {
     self.read_guards.last().expect(msg)
   }
 
-  pub fn peek_head_lock(&self, msg: &'static str) -> &ReadGuard {
+  pub fn peek_head_lock(&self, msg: &'static str) -> &LockSetReadGuard {
     self.read_guards.get(0).as_ref().expect(msg)
   }
 
-  pub fn pop(&mut self, msg: &'static str) -> ReadGuard {
+  pub fn pop(&mut self, msg: &'static str) -> LockSetReadGuard {
     self.read_guards.pop().expect(msg)
   }
 
-  pub fn push(&mut self, guard: ReadGuard) {
+  pub fn push(&mut self, guard: LockSetReadGuard) {
     self.read_guards.push(guard);
   }
 

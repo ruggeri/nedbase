@@ -1,10 +1,7 @@
 use super::acquire_parent_of_deepest_stable_node;
-use btree::BTree;
 use locking::{
-  NodeWriteGuard, ReadGuard, RootIdentifierWriteGuard, WriteGuard,
-  WriteGuardPath,
+  LockSet, LockSetReadGuard, WriteGuardPath,
 };
-use std::sync::Arc;
 
 enum WriteGuardPathAcquisitionResult {
   Success(WriteGuardPath),
@@ -15,20 +12,20 @@ enum WriteGuardPathAcquisitionResult {
 // the way down to a LeafNode. Because this can fail if the target top
 // node becomes unstable, we loop until success.
 pub fn acquire_write_guard_path(
-  btree: &Arc<BTree>,
+  lock_set: &mut LockSet,
   insert_key: &str,
 ) -> WriteGuardPath {
   loop {
     // Note: parent_of_stable_node might be None if we are splitting the
     // root.
     let parent_of_stable_node =
-      acquire_parent_of_deepest_stable_node(btree, insert_key);
+      acquire_parent_of_deepest_stable_node(lock_set, insert_key);
 
     // Now try to acquire the WriteGuardPath. Note that this will
     // release the read lock on the parent (if any).
     let write_guard_acquisition_result =
       try_to_acquire_write_guard_path(
-        btree,
+        lock_set,
         parent_of_stable_node,
         insert_key,
       );
@@ -52,13 +49,13 @@ pub fn acquire_write_guard_path(
 // Acquire a path of write guards starting from deepest stable node all
 // the way down to a LeafNode. This may fail.
 fn try_to_acquire_write_guard_path(
-  btree: &Arc<BTree>,
-  parent_read_guard: Option<ReadGuard>,
+  lock_set: &mut LockSet,
+  parent_read_guard: Option<LockSetReadGuard>,
   insert_key: &str,
 ) -> WriteGuardPathAcquisitionResult {
   // First, try to acquire that top write guard.
   let write_guards = try_to_acquire_top_write_guard(
-    btree,
+    lock_set,
     parent_read_guard,
     insert_key,
   );
@@ -75,23 +72,23 @@ fn try_to_acquire_write_guard_path(
   // Descend acquiring write guards.
   loop {
     let child_guard = {
-      let last_node_guard = write_guards
+      let last_node = write_guards
         .peek_deepest_lock(
           "write_guards starts with a Node and we only add more",
         )
-        .unwrap_node_write_guard_ref(
-          "we should have acquired a node write guard here",
-        );
+        .unwrap_node_ref("last guard in lock path should always be for a Node");
 
-      if last_node_guard.is_leaf_node() {
+      if last_node.is_leaf_node() {
         break;
       }
 
-      last_node_guard
+      let child_identifier = last_node
         .unwrap_interior_node_ref(
           "should be descending through InteriorNode",
         )
-        .acquire_write_guard_for_child_by_key(btree, insert_key)
+        .child_identifier_by_key(insert_key);
+
+      lock_set.node_write_guard_for_hold(child_identifier)
     };
 
     // TODO: If the node we just locked is stable we can release the
@@ -105,8 +102,8 @@ fn try_to_acquire_write_guard_path(
 
 // Attemps to acquire a write guard on the deepest stable ancestor.
 fn try_to_acquire_top_write_guard(
-  btree: &Arc<BTree>,
-  parent_read_guard: Option<ReadGuard>,
+  lock_set: &mut LockSet,
+  parent_read_guard: Option<LockSetReadGuard>,
   insert_key: &str,
 ) -> WriteGuardPathAcquisitionResult {
   let mut write_guards = WriteGuardPath::new();
@@ -116,13 +113,11 @@ fn try_to_acquire_top_write_guard(
       // There may be no parent_read_guard because we may have to split
       // all the way through the root.
       let root_identifier_guard =
-        RootIdentifierWriteGuard::acquire(btree);
-      let root_node_guard = WriteGuard::acquire_node_write_guard(
-        btree,
-        root_identifier_guard.as_str_ref(),
-      );
+        lock_set.root_identifier_write_guard_for_hold();
+      let root_node_guard =
+        lock_set.node_write_guard_for_hold(&root_identifier_guard.identifier());
       write_guards.push(root_identifier_guard.upcast());
-      write_guards.push(root_node_guard);
+      write_guards.push(root_node_guard.upcast());
     }
 
     Some(parent_read_guard) => {
@@ -133,24 +128,25 @@ fn try_to_acquire_top_write_guard(
       //
       // Note that we take ownership of the parent read guard here, so
       // it will be unlocked after write guard is acquired.
-      let deepest_stable_parent = match parent_read_guard {
-        ReadGuard::RootIdentifierReadGuard(
-          root_identifier_read_guard,
-        ) => NodeWriteGuard::acquire(
-          btree,
-          root_identifier_read_guard.as_str_ref(),
-        ),
+      let deepest_stable_parent = match parent_read_guard.downcast() {
+        (Some(root_identifier), None) => {
+          lock_set.node_write_guard_for_hold(&root_identifier)
+        }
 
-        ReadGuard::NodeReadGuard(parent_node_read_guard) => {
-          parent_node_read_guard
+        (None, Some(parent_node)) => {
+          let child_identifier = parent_node
             .unwrap_interior_node_ref(
               "a parent node must be an interior node",
             )
-            .acquire_write_guard_for_child_by_key(btree, insert_key)
+            .child_identifier_by_key(insert_key);
+
+          lock_set.node_write_guard_for_hold(child_identifier)
         }
+
+        _ => panic!("Guards are always for a RootIdentifier or a Node"),
       };
 
-      if !deepest_stable_parent.can_grow_without_split() {
+      if !deepest_stable_parent.node().can_grow_without_split() {
         // It is possible that because of concurrent insertions, this
         // node is no longer stable. Then we must start all over again!
         return WriteGuardPathAcquisitionResult::TopNodeWentUnstable;

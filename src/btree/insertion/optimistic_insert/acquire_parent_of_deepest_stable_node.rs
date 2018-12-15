@@ -1,16 +1,16 @@
 use btree::{util, BTree};
-use locking::ReadGuard;
+use locking::{LockSet, LockSetReadGuard};
 use std::sync::Arc;
 
 // Acquires the parent of the deepest stable node. The deepest stable
 // parent is the highest node that may need to be modified by an
 // insertion.
 pub fn acquire_parent_of_deepest_stable_node(
-  btree: &Arc<BTree>,
+  lock_set: &mut LockSet,
   insert_key: &str,
-) -> Option<ReadGuard> {
+) -> Option<LockSetReadGuard> {
   util::acquire_parent_of_deepest_node_meeting_test(
-    btree,
+    lock_set,
     insert_key,
     |node_ref| node_ref.can_grow_without_split(),
   )

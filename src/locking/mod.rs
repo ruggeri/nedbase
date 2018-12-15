@@ -6,7 +6,7 @@ mod transaction_mode;
 mod writing;
 
 pub use self::guard::Guard;
-pub use self::lock_set::{LockSetNodeReadGuard, LockSet};
+pub use self::lock_set::{LockSet, LockSetNodeReadGuard, LockSetNodeWriteGuard, LockSetReadGuard, LockSetWriteGuard};
 pub use self::reading::{
   NodeReadGuard, ReadGuard, ReadGuardPath, RootIdentifierReadGuard,
 };

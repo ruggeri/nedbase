@@ -1,22 +1,22 @@
 use btree::BTree;
 use locking::{
-  NodeWriteGuard, RootIdentifierWriteGuard, WriteGuard, WriteGuardPath,
+  LockSet, WriteGuard, WriteGuardPath,
 };
 use node::{InsertionResult, InteriorNode};
 use std::sync::Arc;
 
-pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
+pub fn pessimistic_insert(btree: &Arc<BTree>, lock_set: &mut LockSet, insert_key: &str) {
   let mut write_guards = WriteGuardPath::new();
 
   // Acquire write lock on root identifier, and then on the root node.
   {
-    let identifier_guard = RootIdentifierWriteGuard::acquire(btree);
+    let identifier_guard = lock_set.root_identifier_write_guard_for_hold();
     let current_node_guard =
-      NodeWriteGuard::acquire(btree, identifier_guard.as_str_ref());
+      lock_set.node_write_guard_for_hold(&identifier_guard.identifier());
 
     // If root node won't need to split, we can release the write
     // guard on the root identifier.
-    if current_node_guard.can_grow_without_split() {
+    if current_node_guard.node().can_grow_without_split() {
       write_guards.push(current_node_guard.upcast());
     } else {
       write_guards.push(identifier_guard.upcast());
@@ -28,28 +28,32 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
   // prior write locks if you hit a stable node.
   loop {
     let current_node_guard = {
-      let prev_node_write_guard = write_guards
-        .peek_deepest_lock(
-          "since we break at LeafNode, should not run out of locks",
-        )
-        .unwrap_node_write_guard_ref(
+      let prev_node = {
+        let deepest_lock = write_guards
+          .peek_deepest_lock(
+            "since we break at LeafNode, should not run out of locks",
+          );
+        deepest_lock.unwrap_node_ref(
           "final write guard in path should always be for a node",
-        );
+        )
+      };
 
-      if prev_node_write_guard.is_leaf_node() {
+      if prev_node.is_leaf_node() {
         break;
       }
 
-      prev_node_write_guard
+      let node = prev_node
         .unwrap_interior_node_ref(
           "must not descend through interior node",
-        )
-        .acquire_write_guard_for_child_by_key(btree, insert_key)
+        );
+
+      let child_identifier = node.child_identifier_by_key(insert_key);
+      lock_set.node_write_guard_for_hold(child_identifier)
     };
 
     // Whenever we encounter a stable node, we can clear all previously
     // acquired write locks.
-    if current_node_guard.can_grow_without_split() {
+    if current_node_guard.node().can_grow_without_split() {
       write_guards.clear();
     }
 
@@ -58,9 +62,12 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
   }
 
   // After descending all the way, perform the insert at the leaf.
-  let mut insertion_result = write_guards
-    .pop("should have acquired at least one write guard for insertion")
-    .unwrap_node_write_guard("should be inserting at a node")
+  let mut last_guard = write_guards
+    .pop("should have acquired at least one write guard for insertion");
+  let mut last_node = last_guard.unwrap_node_mut_ref("should be inserting at a node");
+
+  let mut insertion_result =
+    last_node
     .unwrap_leaf_node_mut_ref("insertion should happen at leaf node")
     .insert(btree, String::from(insert_key));
 
@@ -72,10 +79,10 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
     let mut last_write_guard = write_guards
       .pop("should not run out of write guards while bubbling splits");
 
-    match last_write_guard {
+    match &mut (*last_write_guard.guard_mut()) {
       // Typical scenario: a child was split. We must update its
       // parent.
-      WriteGuard::NodeWriteGuard(mut node_guard) => {
+      WriteGuard::NodeWriteGuard(ref mut node_guard) => {
         insertion_result = node_guard
           .unwrap_interior_node_mut_ref(
             "parents of split nodes expected to be interior nodes",
@@ -86,14 +93,14 @@ pub fn pessimistic_insert(btree: &Arc<BTree>, insert_key: &str) {
       // If we split all the way to the top, we have to create a new
       // root node.
       WriteGuard::RootIdentifierWriteGuard(
-        mut root_identifier_guard,
+        ref mut root_identifier_guard,
       ) => {
         // First, create the new root node.
         let new_root_identifier =
           InteriorNode::store_new_root(btree, child_split_info);
 
         // Now update the BTree to use the new root node we created.
-        *root_identifier_guard = new_root_identifier;
+        **root_identifier_guard = new_root_identifier;
 
         break;
       }

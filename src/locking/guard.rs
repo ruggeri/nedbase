@@ -54,4 +54,28 @@ impl Guard {
       }
     }
   }
+
+  pub fn unwrap_write_guard(&self, msg: &'static str) -> &WriteGuard {
+    match self {
+      Guard::Read(_) => {
+        panic!(msg)
+      }
+
+      Guard::Write(write_guard) => {
+        write_guard
+      }
+    }
+  }
+
+  pub fn unwrap_write_guard_mut(&mut self, msg: &'static str) -> &mut WriteGuard {
+    match self {
+      Guard::Read(_) => {
+        panic!(msg)
+      }
+
+      Guard::Write(write_guard) => {
+        write_guard
+      }
+    }
+  }
 }

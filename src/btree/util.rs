@@ -1,17 +1,15 @@
-use btree::BTree;
 use locking::{
-  NodeReadGuard, ReadGuard, ReadGuardPath, RootIdentifierReadGuard,
+  LockSet, LockSetReadGuard, ReadGuardPath,
 };
 use node::Node;
-use std::sync::Arc;
 
 // Finds highest lock target that may need to be mutated by an
 // operation.
 pub fn acquire_parent_of_deepest_node_meeting_test<F>(
-  btree: &Arc<BTree>,
+  lock_set: &mut LockSet,
   key: &str,
   stability_check: F,
-) -> Option<ReadGuard>
+) -> Option<LockSetReadGuard>
 where
   F: Fn(&Node) -> bool,
 {
@@ -19,9 +17,9 @@ where
 
   // Acquire read lock on root identifier, and then on the root node.
   {
-    let identifier_guard = RootIdentifierReadGuard::acquire(btree);
+    let identifier_guard = lock_set.root_identifier_read_guard_for_temp();
     let current_node_guard =
-      NodeReadGuard::acquire(btree, identifier_guard.as_str_ref());
+      lock_set.node_read_guard_for_temp(&identifier_guard.identifier());
 
     read_guards.push(identifier_guard.upcast());
     read_guards.push(current_node_guard.upcast());
@@ -36,7 +34,7 @@ where
         .peek_deepest_lock(
           "since we break at LeafNode, should not run out of locks",
         )
-        .unwrap_node_read_guard_ref(
+        .unwrap_node_ref(
           "final read guard in path should always be for a node",
         );
 
@@ -45,11 +43,12 @@ where
       }
 
       // Otherwise we must continue to descend.
-      node_read_guard
+      let child_identifier = node_read_guard
         .unwrap_interior_node_ref(
           "should be descending through InteriorNode",
         )
-        .acquire_read_guard_for_child_by_key(btree, key)
+        .child_identifier_by_key(key);
+      lock_set.node_read_guard_for_hold(child_identifier)
     };
 
     // Whenever we encounter a stable node, we can clear all but the
@@ -61,7 +60,7 @@ where
     //
     // Holding a read lock on its parent means that the target of the
     // write lock will still be where the value should live.
-    if stability_check(current_node_guard.node()) {
+    if stability_check(&(*current_node_guard.node())) {
       // See how I shuffle the parent guard? Ugh.
       let last_guard =
         read_guards.pop("should never run out of read locks");
@@ -89,14 +88,15 @@ where
   // First, drop all but the top two locks. Unpack those.
   read_guards.truncate(2);
   let node_guard = read_guards
-    .pop("expected at least root node guard here...")
-    .unwrap_node_read_guard(
+    .pop("expected at least root node guard here...");
+  let node = node_guard
+    .unwrap_node_ref(
       "second lock should never be a root identifier lock",
     );
   let parent_guard =
     read_guards.pop("should always have had at least two guards");
 
-  if stability_check(node_guard.node()) {
+  if stability_check(&node) {
     Some(parent_guard)
   } else {
     None
