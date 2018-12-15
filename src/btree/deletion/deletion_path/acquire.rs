@@ -108,8 +108,7 @@ fn extend_deletion_path(
 
   // Who is the child? Acquire it.
   let (child_idx, child_node_guard) = {
-    let parent_node_ref = parent_node_guard.unwrap_node_ref();
-    let parent_node = parent_node_ref
+    let parent_node = parent_node_guard
       .unwrap_interior_node_ref("must not descend through leaves");
 
     let child_idx = parent_node.child_idx_by_key(key_to_delete);
@@ -121,11 +120,11 @@ fn extend_deletion_path(
     (child_idx, child_node_guard)
   };
 
-  // Who are the sibblings?
+  // Who are the sibblings? Which one should we merge with?
   let sibbling_node_guard = {
-    let parent_node_ref = parent_node_guard.unwrap_node_ref();
-    let sibbling_node_identifiers = parent_node_ref
-      .unwrap_interior_node_ref("must not descend through leaves")
+    let parent_node = parent_node_guard
+      .unwrap_interior_node_ref("must not descend through leaves");
+    let sibbling_node_identifiers = parent_node
       .sibbling_identifiers_for_idx(child_idx);
 
     // Which is the sibbling to merge with? Acquire it.
