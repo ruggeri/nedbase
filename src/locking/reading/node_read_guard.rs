@@ -19,7 +19,10 @@ impl Deref for NodeReadGuard {
 }
 
 impl NodeReadGuard {
-  pub(in locking) fn acquire(btree: &BTree, identifier: &str) -> NodeReadGuard {
+  pub(in locking) fn acquire(
+    btree: &BTree,
+    identifier: &str,
+  ) -> NodeReadGuard {
     // This is trickery. `RwLockReadGuard` wants a lifetime: it doesn't
     // want to outlive the `RwLock`. But the `RwLock` *cannot* be lost,
     // because I hold onto it via `Arc`.
@@ -27,16 +30,13 @@ impl NodeReadGuard {
     // However, Rust won't understand this. Therefore, I resort to this
     // unsafe code.
     unsafe {
-      let lock: Arc<RwLock<Node>> = btree.get_node_arc_lock(&identifier);
+      let lock: Arc<RwLock<Node>> =
+        btree.get_node_arc_lock(&identifier);
 
-      let guard: RwLockReadGuard<'static, Node> = std::mem::transmute(
-        lock.read()
-      );
+      let guard: RwLockReadGuard<'static, Node> =
+        std::mem::transmute(lock.read());
 
-      NodeReadGuard {
-        _lock: lock,
-        guard
-      }
+      NodeReadGuard { _lock: lock, guard }
     }
   }
 

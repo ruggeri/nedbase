@@ -30,17 +30,18 @@ impl RootIdentifierWriteGuard {
   //
   // However, Rust won't understand this. Therefore, I resort to this
   // unsafe code.
-  pub(in locking) fn acquire(btree: &Arc<BTree>) -> RootIdentifierWriteGuard {
+  pub(in locking) fn acquire(
+    btree: &Arc<BTree>,
+  ) -> RootIdentifierWriteGuard {
     unsafe {
       let lock = btree.root_identifier_lock();
-      let guard: RwLockWriteGuard<'static, String> = std::mem::transmute(
-        lock.write()
-      );
+      let guard: RwLockWriteGuard<'static, String> =
+        std::mem::transmute(lock.write());
 
       let btree: Arc<BTree> = Arc::clone(btree);
       RootIdentifierWriteGuard {
         _btree: btree,
-        guard
+        guard,
       }
     }
   }

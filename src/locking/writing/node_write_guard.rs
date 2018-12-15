@@ -25,7 +25,10 @@ impl DerefMut for NodeWriteGuard {
 }
 
 impl NodeWriteGuard {
-  pub(in locking) fn acquire(btree: &BTree, identifier: &str) -> NodeWriteGuard {
+  pub(in locking) fn acquire(
+    btree: &BTree,
+    identifier: &str,
+  ) -> NodeWriteGuard {
     // This is trickery. `RwLockWriteGuard` wants a lifetime: it doesn't
     // want to outlive the `RwLock`. But the `RwLock` *cannot* be lost,
     // because I hold onto it via `Arc`.
@@ -33,16 +36,13 @@ impl NodeWriteGuard {
     // However, Rust won't understand this. Therefore, I resort to this
     // unsafe code.
     unsafe {
-      let lock: Arc<RwLock<Node>> = btree.get_node_arc_lock(&identifier);
+      let lock: Arc<RwLock<Node>> =
+        btree.get_node_arc_lock(&identifier);
 
-      let guard: RwLockWriteGuard<'static, Node> = std::mem::transmute(
-        lock.write()
-      );
+      let guard: RwLockWriteGuard<'static, Node> =
+        std::mem::transmute(lock.write());
 
-      NodeWriteGuard {
-        _lock: lock,
-        guard
-      }
+      NodeWriteGuard { _lock: lock, guard }
     }
   }
 

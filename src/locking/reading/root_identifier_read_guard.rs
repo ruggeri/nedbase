@@ -18,7 +18,9 @@ impl Deref for RootIdentifierReadGuard {
 }
 
 impl RootIdentifierReadGuard {
-  pub(in locking) fn acquire(btree: &Arc<BTree>) -> RootIdentifierReadGuard {
+  pub(in locking) fn acquire(
+    btree: &Arc<BTree>,
+  ) -> RootIdentifierReadGuard {
     // This is trickery. `RwLockReadGuard` wants a lifetime: it doesn't
     // want to outlive the `BTree`. But the `BTree` *cannot* be lost,
     // because I hold onto it via `Arc`.
@@ -27,14 +29,13 @@ impl RootIdentifierReadGuard {
     // unsafe code.
     unsafe {
       let lock = btree.root_identifier_lock();
-      let guard: RwLockReadGuard<'static, String> = std::mem::transmute(
-        lock.read()
-      );
+      let guard: RwLockReadGuard<'static, String> =
+        std::mem::transmute(lock.read());
 
       let btree: Arc<BTree> = Arc::clone(btree);
       RootIdentifierReadGuard {
         _btree: btree,
-        guard
+        guard,
       }
     }
   }
