@@ -130,8 +130,10 @@ impl InteriorNode {
     // First move over the children. (Prepending is kinda gross...)
     let drain_start_idx =
       left_node.num_children() - num_children_to_move;
-    let mut new_right_child_identifiers: Vec<_> =
-      left_node.child_identifiers.drain(drain_start_idx..).collect();
+    let mut new_right_child_identifiers: Vec<_> = left_node
+      .child_identifiers
+      .drain(drain_start_idx..)
+      .collect();
     new_right_child_identifiers
       .append(&mut right_node.child_identifiers);
     right_node.child_identifiers = new_right_child_identifiers;
@@ -142,7 +144,8 @@ impl InteriorNode {
     let drain_start_idx =
       left_node.num_split_keys() - num_split_keys_to_move;
     let mut new_right_splits = vec![];
-    new_right_splits.extend(left_node.splits.drain(drain_start_idx + 1..));
+    new_right_splits
+      .extend(left_node.splits.drain(drain_start_idx + 1..));
     new_right_splits.push(parent_node.splits[left_idx].clone());
     new_right_splits.append(&mut right_node.splits);
     right_node.splits = new_right_splits;
