@@ -3,7 +3,7 @@ use super::{
   MergeWithSibblingAction, UpdateRootIdentifierAction,
 };
 use btree::BTree;
-use locking::{LockSetNodeWriteGuard, LockSetRootIdentifierWriteGuard};
+use locking::{LockSet, LockSetNodeWriteGuard, LockSetRootIdentifierWriteGuard};
 
 // DeletionAction represents one of three possibilities:
 //
@@ -57,12 +57,12 @@ impl DeletionAction {
     DeletionAction::UpdateRootIdentifier(action)
   }
 
-  pub fn execute(self, btree: &BTree) -> DeletionActionResult {
+  pub fn execute(self, btree: &BTree, lock_set: &mut LockSet) -> DeletionActionResult {
     match self {
-      DeletionAction::DeleteKeyFromNode(action) => action.execute(),
+      DeletionAction::DeleteKeyFromNode(action) => action.execute(lock_set),
 
       DeletionAction::MergeWithSibbling(action) => {
-        action.execute(btree)
+        action.execute(btree, lock_set)
       }
 
       DeletionAction::UpdateRootIdentifier(action) => action.execute(),

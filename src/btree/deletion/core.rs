@@ -17,7 +17,7 @@ pub fn delete(
     // Perform each of the actions. The first one (presumably) will
     // delete the key.
     let action = deletion_path.pop_action();
-    let result = action.execute(btree);
+    let result = action.execute(btree, lock_set);
 
     // Action may have us stop if we hit a stable parent or consume the
     // root.
