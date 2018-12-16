@@ -13,9 +13,6 @@ pub fn delete(
   let mut deletion_path =
     acquire_deletion_path(lock_set, key_to_delete);
 
-  // TODO: Super hacky way to hold onto held locks for 2PL.
-  lock_set.freeze_held_guards();
-
   loop {
     // Perform each of the actions. The first one (presumably) will
     // delete the key.

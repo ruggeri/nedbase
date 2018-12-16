@@ -19,10 +19,9 @@ impl DeletionPathBuilder {
     lock_set: &mut LockSet,
   ) -> DeletionPathBuilder {
     // Acquire locks for the root identifier and the current root node.
-    let root_identifier_guard =
-      lock_set.root_identifier_write_guard_for_hold();
+    let root_identifier_guard = lock_set.root_identifier_write_guard();
     let root_node_guard = lock_set
-      .node_write_guard_for_hold(&root_identifier_guard.identifier());
+      .node_write_guard(&root_identifier_guard.identifier());
 
     // We start out with a DeletionAction for updating the root
     // identifier.
@@ -46,7 +45,7 @@ impl DeletionPathBuilder {
   ) -> Option<DeletionPathBuilder> {
     // First, acquire a guard on the stable ancestor.
     let stable_node_guard =
-      lock_set.node_write_guard_for_hold(stable_ancestor_identifier);
+      lock_set.node_write_guard(stable_ancestor_identifier);
 
     // We must check: did the target node go unstable on us? If that
     // happened, we will have to start everything again...
@@ -97,7 +96,7 @@ impl DeletionPathBuilder {
       let child_node_identifier =
         parent_node.child_identifier_by_idx(child_idx);
       let child_node_guard =
-        lock_set.node_write_guard_for_hold(&child_node_identifier);
+        lock_set.node_write_guard(&child_node_identifier);
 
       (child_idx, child_node_guard)
     };
@@ -142,7 +141,7 @@ impl DeletionPathBuilder {
       // merge/rotate with that sibbling.
       (Some(sibbling_node_identifier), None)
       | (None, Some(sibbling_node_identifier)) => {
-        lock_set.node_write_guard_for_hold(&sibbling_node_identifier)
+        lock_set.node_write_guard(&sibbling_node_identifier)
       }
 
       (
@@ -157,7 +156,7 @@ impl DeletionPathBuilder {
         // biased like this.
         {
           let left_sibbling_guard = lock_set
-            .node_write_guard_for_hold(&left_sibbling_node_identifier);
+            .node_write_guard(&left_sibbling_node_identifier);
 
           // If the left sibbling has spare keys, rotate them to us.
           if left_sibbling_guard
@@ -172,7 +171,7 @@ impl DeletionPathBuilder {
         // right sibbling. Note: while we prefer the left sibbling for
         // rotation, we prefer the right sibbling for merging.
         lock_set
-          .node_write_guard_for_hold(&right_sibbling_node_identifier)
+          .node_write_guard(&right_sibbling_node_identifier)
       }
     }
   }

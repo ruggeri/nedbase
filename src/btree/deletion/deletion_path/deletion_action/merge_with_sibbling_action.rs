@@ -26,6 +26,9 @@ impl MergeWithSibblingAction {
         &mut sibbling_node,
       );
 
+    // TODO: Must hold the merged leaves...
+    unimplemented!();
+
     // If after merge our parent is fine, we can stop.
     if parent_node.is_deficient() {
       DeletionActionResult::ContinueBubbling
