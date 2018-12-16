@@ -1,6 +1,6 @@
 use super::{
   LockSet, LockSetNodeWriteGuard, LockSetRootIdentifierWriteGuard,
-  LockSetValue,
+  LockSetValue, LockSetWriteGuard
 };
 use locking::{
   Guard, LockMode, LockTarget, TransactionMode, WriteGuard,
@@ -12,25 +12,43 @@ use std::rc::Rc;
 // simplest scenario.
 
 impl LockSet {
-  pub fn node_write_guard_for_hold(
+  pub fn node_write_guard(
     &mut self,
     identifier: &str,
   ) -> LockSetNodeWriteGuard {
     // TODO: This String::from seems wasteful just to do a lookup...
-    let guard = self.write_guard_for_hold(&LockTarget::Node(
+    let guard = self.write_guard(&LockTarget::Node(
       String::from(identifier),
     ));
     LockSetNodeWriteGuard::from_guard(guard)
   }
 
-  pub fn root_identifier_write_guard_for_hold(
+  pub fn root_identifier_write_guard(
     &mut self,
   ) -> LockSetRootIdentifierWriteGuard {
-    let guard = self.write_guard_for_hold(&LockTarget::RootIdentifier);
+    let guard = self.write_guard(&LockTarget::RootIdentifier);
     LockSetRootIdentifierWriteGuard::from_guard(guard)
   }
 
-  fn write_guard_for_hold(
+  pub fn hold_node_write_guard(
+    &mut self,
+    node_guard: &LockSetNodeWriteGuard,
+  ) {
+    let strong_ref_cell_guard = node_guard.clone_ref_cell_guard();
+    let target = strong_ref_cell_guard.borrow().target();
+    self.held_guards.insert(target, strong_ref_cell_guard);
+  }
+
+  pub fn hold_write_guard(
+    &mut self,
+    node_guard: &LockSetWriteGuard,
+  ) {
+    let strong_ref_cell_guard = node_guard.clone_ref_cell_guard();
+    let target = strong_ref_cell_guard.borrow().target();
+    self.held_guards.insert(target, strong_ref_cell_guard);
+  }
+
+  fn write_guard(
     &mut self,
     lock_target: &LockTarget,
   ) -> Rc<RefCell<Guard>> {
@@ -42,20 +60,20 @@ impl LockSet {
     // If we don't have a copy of this lock, then it's simple: we must
     // acquire it.
     if !self.guards.contains_key(lock_target) {
-      return self.acquire_write_guard_for_hold(lock_target);
+      return self.acquire_write_guard(lock_target);
     }
 
     // If we previously acquired this lock, then we should attempt to
     // upgrade the retained lock.
-    if let Some(guard) = self.upgrade_for_write_hold(lock_target) {
+    if let Some(guard) = self.upgrade_for_write(lock_target) {
       return guard;
     }
 
     // But if we failed the upgrade, we'll have to reacquire after all.
-    self.acquire_write_guard_for_hold(lock_target)
+    self.acquire_write_guard(lock_target)
   }
 
-  fn acquire_write_guard_for_hold(
+  fn acquire_write_guard(
     &mut self,
     lock_target: &LockTarget,
   ) -> Rc<RefCell<Guard>> {
@@ -82,7 +100,7 @@ impl LockSet {
     guard
   }
 
-  fn upgrade_for_write_hold(
+  fn upgrade_for_write(
     &mut self,
     lock_target: &LockTarget,
   ) -> Option<Rc<RefCell<Guard>>> {

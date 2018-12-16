@@ -9,7 +9,7 @@ mod read_guards;
 mod write_guards;
 
 // These are for internal use of LockSet.
-pub(self) use self::lock_set_value::LockSetValue;
+pub(self) use self::lock_set_value::{LockSetValue, RefCellGuard, StrongRefCellGuard, WeakRefCellGuard};
 
 pub use self::lock_set::LockSet;
 pub use self::read_guards::{

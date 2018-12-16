@@ -16,44 +16,44 @@ use std::rc::Rc;
 // we would deadlock ourselves.
 
 impl LockSet {
-  pub fn node_read_guard_for_temp(
+  pub fn temp_node_read_guard(
     &mut self,
     identifier: &str,
   ) -> LockSetNodeReadGuard {
     // TODO: This String::from seems wasteful just to do a lookup...
     let guard = self
-      .read_guard_for_temp(&LockTarget::Node(String::from(identifier)));
+      .temp_read_guard(&LockTarget::Node(String::from(identifier)));
     LockSetNodeReadGuard::from_guard(guard)
   }
 
-  pub fn root_identifier_read_guard_for_temp(
+  pub fn temp_root_identifier_read_guard(
     &mut self,
   ) -> LockSetRootIdentifierReadGuard {
-    let guard = self.read_guard_for_temp(&LockTarget::RootIdentifier);
+    let guard = self.temp_read_guard(&LockTarget::RootIdentifier);
     LockSetRootIdentifierReadGuard::from_guard(guard)
   }
 
-  fn read_guard_for_temp(
+  fn temp_read_guard(
     &mut self,
     lock_target: &LockTarget,
   ) -> Rc<RefCell<Guard>> {
     // If we don't have a copy of this lock, then it's simple: we must
     // acquire it.
     if !self.guards.contains_key(lock_target) {
-      return self.acquire_read_guard_for_temp(lock_target);
+      return self.acquire_temp_read_guard(lock_target);
     }
 
     // If we previously acquired this lock, then we should attempt to
     // upgrade the retained lock.
-    if let Some(guard) = self.upgrade_for_read_temp(lock_target) {
+    if let Some(guard) = self.upgrade_for_temp_read(lock_target) {
       return guard;
     }
 
     // But if we failed the upgrade, we'll have to reacquire after all.
-    self.acquire_read_guard_for_temp(lock_target)
+    self.acquire_temp_read_guard(lock_target)
   }
 
-  fn upgrade_for_read_temp(
+  fn upgrade_for_temp_read(
     &mut self,
     lock_target: &LockTarget,
   ) -> Option<Rc<RefCell<Guard>>> {
@@ -64,7 +64,7 @@ impl LockSet {
     guard.upgrade()
   }
 
-  fn acquire_read_guard_for_temp(
+  fn acquire_temp_read_guard(
     &mut self,
     lock_target: &LockTarget,
   ) -> Rc<RefCell<Guard>> {

@@ -14,44 +14,57 @@ use std::rc::Rc;
 // (ReadWrite), we may actually need to acquire a *write* lock.
 
 impl LockSet {
-  pub fn node_read_guard_for_hold(
+  pub fn node_read_guard(
     &mut self,
     identifier: &str,
   ) -> LockSetNodeReadGuard {
     // TODO: This String::from seems wasteful just to do a lookup...
     let guard = self
-      .read_guard_for_hold(&LockTarget::Node(String::from(identifier)));
+      .read_guard(&LockTarget::Node(String::from(identifier)));
     LockSetNodeReadGuard::from_guard(guard)
   }
 
-  pub fn root_identifier_read_guard_for_hold(
+  pub fn root_identifier_read_guard(
     &mut self,
   ) -> LockSetRootIdentifierReadGuard {
-    let guard = self.read_guard_for_hold(&LockTarget::RootIdentifier);
+    let guard = self.read_guard(&LockTarget::RootIdentifier);
     LockSetRootIdentifierReadGuard::from_guard(guard)
   }
 
-  fn read_guard_for_hold(
+  pub fn hold_node_read_guard(
+    &mut self,
+    node_guard: &LockSetNodeReadGuard,
+  ) {
+    let strong_ref_cell_guard = node_guard.clone_ref_cell_guard();
+    self.held_guards.insert(
+      LockTarget::Node(
+        String::from(node_guard.unwrap_node_ref().identifier())
+      ),
+      strong_ref_cell_guard
+    );
+  }
+
+  fn read_guard(
     &mut self,
     lock_target: &LockTarget,
   ) -> Rc<RefCell<Guard>> {
     // If we don't have a copy of this lock, then it's simple: we must
     // acquire it.
     if !self.guards.contains_key(lock_target) {
-      return self.acquire_read_guard_for_hold(lock_target);
+      return self.acquire_read_guard(lock_target);
     }
 
     // If we previously acquired this lock, then we should attempt to
     // upgrade the retained lock.
-    if let Some(guard) = self.upgrade_for_read_hold(lock_target) {
+    if let Some(guard) = self.upgrade_for_read(lock_target) {
       return guard;
     }
 
     // But if we failed the upgrade, we'll have to reacquire after all.
-    self.acquire_read_guard_for_hold(lock_target)
+    self.acquire_read_guard(lock_target)
   }
 
-  fn acquire_read_guard_for_hold(
+  fn acquire_read_guard(
     &mut self,
     lock_target: &LockTarget,
   ) -> Rc<RefCell<Guard>> {
@@ -91,7 +104,7 @@ impl LockSet {
     guard
   }
 
-  fn upgrade_for_read_hold(
+  fn upgrade_for_read(
     &mut self,
     lock_target: &LockTarget,
   ) -> Option<Rc<RefCell<Guard>>> {
