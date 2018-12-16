@@ -38,6 +38,13 @@ impl ReadGuard {
     )
   }
 
+  pub fn target(&self) -> LockTarget {
+    match self {
+      ReadGuard::RootIdentifierReadGuard(..) => LockTarget::RootIdentifier,
+      ReadGuard::NodeReadGuard(guard) => LockTarget::Node(String::from(guard.identifier()))
+    }
+  }
+
   pub fn unwrap_node_read_guard(
     self,
     message: &'static str,

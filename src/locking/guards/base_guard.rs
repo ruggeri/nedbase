@@ -1,4 +1,5 @@
 use super::{ReadGuard, WriteGuard};
+use locking::LockTarget;
 use node::Node;
 
 pub enum Guard {
@@ -7,6 +8,13 @@ pub enum Guard {
 }
 
 impl Guard {
+  pub fn target(&self) -> LockTarget {
+    match self {
+      Guard::Read(read_guard) => read_guard.target(),
+      Guard::Write(write_guard) => write_guard.target(),
+    }
+  }
+
   pub fn unwrap_node_mut_ref(
     &mut self,
     msg: &'static str,
