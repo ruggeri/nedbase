@@ -15,6 +15,9 @@ pub fn optimistic_insert(
   let mut write_guard_path =
     acquire_write_guard_path(lock_set, insert_key);
 
+  // TODO: Super hacky way to hold onto held locks for 2PL.
+  lock_set.freeze_held_guards();
+
   // Now we perform the insertion at the leaf node. This may trigger a
   // split.
   let mut insertion_result = {

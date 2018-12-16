@@ -1,7 +1,9 @@
 use super::LockSetValue;
 use btree::BTree;
-use locking::{LockTarget, TransactionMode};
+use locking::{Guard, LockTarget, TransactionMode};
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 
 // The LockSet manages all the locks for a transaction. It's important
@@ -26,6 +28,7 @@ use std::sync::Arc;
 pub struct LockSet {
   pub(super) btree: Arc<BTree>,
   pub(super) guards: HashMap<LockTarget, LockSetValue>,
+  pub(super) held_guards: HashMap<LockTarget, Rc<RefCell<Guard>>>,
   pub(super) tx_mode: TransactionMode,
 }
 
@@ -34,7 +37,20 @@ impl LockSet {
     LockSet {
       btree: Arc::clone(btree),
       guards: HashMap::new(),
+      held_guards: HashMap::new(),
       tx_mode,
+    }
+  }
+
+  // TODO: Super hacky way to hold onto held locks for 2PL.
+  pub fn freeze_held_guards(&mut self) {
+    for (key, value) in self.guards.iter() {
+      let guard = match value.guard.upgrade() {
+        None => continue,
+        Some(guard) => guard,
+      };
+
+      self.held_guards.insert(key.clone(), guard);
     }
   }
 }

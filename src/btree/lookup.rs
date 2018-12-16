@@ -4,6 +4,10 @@ use locking::{LockSet, LockSetNodeReadGuard};
 impl BTree {
   pub fn contains_key(lock_set: &mut LockSet, key: &str) -> bool {
     let guard = BTree::find_leaf_for_key(lock_set, key);
+
+    // TODO: Super hacky way to hold onto held locks for 2PL.
+    lock_set.freeze_held_guards();
+
     let node = guard
       .unwrap_leaf_node_ref("find_leaf_for_key must return leaf node");
 

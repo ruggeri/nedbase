@@ -68,6 +68,9 @@ pub fn pessimistic_insert(
     write_guards.push(current_node_guard.upcast());
   }
 
+  // TODO: Super hacky way to hold onto held locks for 2PL.
+  lock_set.freeze_held_guards();
+
   // After descending all the way, perform the insert at the leaf.
   let mut insertion_result = {
     let mut last_guard = write_guards.pop(
