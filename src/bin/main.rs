@@ -49,5 +49,10 @@ fn perform_insertions(btree: &Arc<BTree>) {
 
     // And interleave deletions.
     BTree::delete(btree, &mut lock_set, &insertion);
+
+    if BTree::contains_key(&mut lock_set, &insertion) {
+      println!("Key was retained: {}", insertion);
+      continue;
+    }
   }
 }

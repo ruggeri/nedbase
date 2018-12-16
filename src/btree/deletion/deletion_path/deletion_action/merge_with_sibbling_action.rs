@@ -1,4 +1,4 @@
-use super::UnderflowActionResult;
+use super::DeletionActionResult;
 use btree::BTree;
 use locking::LockSetNodeWriteGuard;
 
@@ -10,7 +10,7 @@ pub struct MergeWithSibblingAction {
 
 // Helper struct that performs the merge operation.
 impl MergeWithSibblingAction {
-  pub fn execute(mut self, btree: &BTree) -> UnderflowActionResult {
+  pub fn execute(mut self, btree: &BTree) -> DeletionActionResult {
     // Get the write locks you've acquired on everyone.
     let mut parent_node = self.parent_node_guard.unwrap_node_mut_ref();
     let mut child_node = self.child_node_guard.unwrap_node_mut_ref();
@@ -28,9 +28,9 @@ impl MergeWithSibblingAction {
 
     // If after merge our parent is fine, we can stop.
     if parent_node.is_deficient() {
-      UnderflowActionResult::ContinueBubbling
+      DeletionActionResult::ContinueBubbling
     } else {
-      UnderflowActionResult::StopBubbling
+      DeletionActionResult::StopBubbling
     }
   }
 }

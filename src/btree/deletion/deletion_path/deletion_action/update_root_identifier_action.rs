@@ -1,4 +1,4 @@
-use super::UnderflowActionResult;
+use super::DeletionActionResult;
 use locking::{LockSetNodeWriteGuard, LockSetRootIdentifierWriteGuard};
 
 pub struct UpdateRootIdentifierAction {
@@ -7,14 +7,14 @@ pub struct UpdateRootIdentifierAction {
 }
 
 impl UpdateRootIdentifierAction {
-  pub fn execute(&self) -> UnderflowActionResult {
+  pub fn execute(&self) -> DeletionActionResult {
     let new_root_identifier = {
       // First, get the root_node.
       let root_node = self.root_node_guard.unwrap_node_ref();
 
       // Next, if the root node is a leaf, there is nothing to do.
       if root_node.is_leaf_node() {
-        return UnderflowActionResult::StopBubbling;
+        return DeletionActionResult::StopBubbling;
       }
 
       // Okay, so the root is an InteriorNode...
@@ -25,7 +25,7 @@ impl UpdateRootIdentifierAction {
       // We will only "consume" the root and decrease the height of
       // the BTree when the root has a *single child*.
       if root_node.num_children() > 1 {
-        return UnderflowActionResult::StopBubbling;
+        return DeletionActionResult::StopBubbling;
       }
 
       // Okay! We do want to pull up the root. The new root will be the
@@ -39,6 +39,6 @@ impl UpdateRootIdentifierAction {
     *root_identifier = new_root_identifier;
 
     // Now that we have a new root everything is completed.
-    UnderflowActionResult::StopBubbling
+    DeletionActionResult::StopBubbling
   }
 }

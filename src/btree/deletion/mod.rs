@@ -1,15 +1,11 @@
 mod acquire_parent_of_deepest_stable_node;
 mod core;
 mod deletion_path;
-mod underflow_actions;
 
 // Methods/classes to share amongst this submodule.
 pub(self) use self::acquire_parent_of_deepest_stable_node::acquire_parent_of_deepest_stable_node;
 pub(self) use self::deletion_path::{
-  acquire_deletion_path, DeletionPathEntry,
-};
-pub(self) use self::underflow_actions::{
-  UnderflowAction, UnderflowActionResult,
+  acquire_deletion_path, DeletionActionResult,
 };
 
 // Needed for the BTree#delete method.

@@ -1,6 +1,6 @@
 #[must_use]
 #[derive(Clone, Copy)]
-pub enum UnderflowActionResult {
+pub enum DeletionActionResult {
   ContinueBubbling,
   StopBubbling,
 }
