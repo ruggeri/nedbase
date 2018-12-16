@@ -6,8 +6,13 @@ use std::sync::Arc;
 use std::thread;
 
 const MAX_KEYS_PER_NODE: usize = 1024;
-const NUM_KEYS_PER_THREAD: u32 = 10_000;
+const NUM_KEYS: u32 = 100_000;
 const NUM_THREADS: u32 = 32;
+
+// TODO: Everything works fine for single-query transactions, but there
+// is potential deadlock even when doing carefully ordered updates
+// because descending takes and holds locks even when it can't
+// succeed...
 
 fn main() {
   // Make the BTree.
@@ -16,7 +21,7 @@ fn main() {
   // Make the work.
   let keyset = {
     let mut keyset = vec![];
-    for _ in 0..(NUM_THREADS * NUM_KEYS_PER_THREAD) {
+    for _ in 0..NUM_KEYS {
       let key1 = btree.get_new_identifier();
       let key2 = btree.get_new_identifier();
 
@@ -66,31 +71,31 @@ fn run_thread(btree: &Arc<BTree>, keyset: Arc<Vec<(String, String)>>) {
     if idx % 3 == 0 {
       let mut lock_set = LockSet::new(btree, TransactionMode::ReadWrite);
       BTree::optimistic_insert(btree, &mut lock_set, &key1);
-      BTree::optimistic_insert(btree, &mut lock_set, &key2);
+      // BTree::optimistic_insert(btree, &mut lock_set, &key2);
 
-      let key1_present = BTree::contains_key(&mut lock_set, &key1);
-      let key2_present = BTree::contains_key(&mut lock_set, &key2);
-      if !key1_present || !key2_present {
-        println!("A key wasn't inserted?");
-      }
+      // let key1_present = BTree::contains_key(&mut lock_set, &key1);
+      // let key2_present = BTree::contains_key(&mut lock_set, &key2);
+      // if !key1_present || !key2_present {
+      //   println!("A key wasn't inserted?");
+      // }
     } else if idx % 3 == 1 {
       let mut lock_set = LockSet::new(btree, TransactionMode::ReadWrite);
       BTree::delete(btree, &mut lock_set, &key1);
-      BTree::delete(btree, &mut lock_set, &key2);
+      // BTree::delete(btree, &mut lock_set, &key2);
 
-      let key1_present = BTree::contains_key(&mut lock_set, &key1);
-      let key2_present = BTree::contains_key(&mut lock_set, &key2);
-      if key1_present || key2_present {
-        println!("A key wasn't deleted?");
-      }
+      // let key1_present = BTree::contains_key(&mut lock_set, &key1);
+      // let key2_present = BTree::contains_key(&mut lock_set, &key2);
+      // if key1_present || key2_present {
+      //   println!("A key wasn't deleted?");
+      // }
     } else {
       let mut lock_set = LockSet::new(btree, TransactionMode::ReadOnly);
       let key1_present = BTree::contains_key(&mut lock_set, &key1);
-      let key2_present = BTree::contains_key(&mut lock_set, &key2);
+      // let key2_present = BTree::contains_key(&mut lock_set, &key2);
 
-      if key1_present != key2_present {
-        println!("Read transaction isolation violated!");
-      }
+      // if key1_present != key2_present {
+      //   // println!("Read transaction isolation violated!");
+      // }
     }
   }
 }
