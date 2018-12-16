@@ -2,13 +2,13 @@ use super::DeletionActionResult;
 use btree::BTree;
 use locking::LockSetNodeWriteGuard;
 
+// This action merges (or rotates) a deficient node with a sibbling.
 pub struct MergeWithSibblingAction {
   pub(super) parent_node_guard: LockSetNodeWriteGuard,
   pub(super) child_node_guard: LockSetNodeWriteGuard,
   pub(super) sibbling_node_guard: LockSetNodeWriteGuard,
 }
 
-// Helper struct that performs the merge operation.
 impl MergeWithSibblingAction {
   pub fn execute(mut self, btree: &BTree) -> DeletionActionResult {
     // Get the write locks you've acquired on everyone.

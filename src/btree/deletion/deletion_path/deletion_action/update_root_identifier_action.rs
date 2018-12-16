@@ -1,6 +1,8 @@
 use super::DeletionActionResult;
 use locking::{LockSetNodeWriteGuard, LockSetRootIdentifierWriteGuard};
 
+// An action that updates the root identifier when the root node goes
+// deficient.
 pub struct UpdateRootIdentifierAction {
   pub(super) root_identifier_guard: LockSetRootIdentifierWriteGuard,
   pub(super) root_node_guard: LockSetNodeWriteGuard,
@@ -12,7 +14,8 @@ impl UpdateRootIdentifierAction {
       // First, get the root_node.
       let root_node = self.root_node_guard.unwrap_node_ref();
 
-      // Next, if the root node is a leaf, there is nothing to do.
+      // Next, if the root node is a leaf, there is nothing to do. You
+      // can't shrink a leaf node...
       if root_node.is_leaf_node() {
         return DeletionActionResult::StopBubbling;
       }
@@ -22,8 +25,8 @@ impl UpdateRootIdentifierAction {
         "can't reduce depth if root is already LeafNode",
       );
 
-      // We will only "consume" the root and decrease the height of
-      // the BTree when the root has a *single child*.
+      // Still, we will only "consume" the root and decrease the height
+      // of the BTree when the root has a *single child*.
       if root_node.num_children() > 1 {
         return DeletionActionResult::StopBubbling;
       }

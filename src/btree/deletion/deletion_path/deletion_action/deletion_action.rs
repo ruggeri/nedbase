@@ -5,12 +5,19 @@ use super::{
 use btree::BTree;
 use locking::{LockSetNodeWriteGuard, LockSetRootIdentifierWriteGuard};
 
+// DeletionAction represents one of three possibilities:
+//
+// 1. Delete a key from a LeafNode,
+// 2. Merge two nodes because one went deficient.
+// 3. Update root identifier if depth of tree shrinks.
 pub enum DeletionAction {
   DeleteKeyFromNode(DeleteKeyFromNodeAction),
   MergeWithSibbling(MergeWithSibblingAction),
   UpdateRootIdentifier(UpdateRootIdentifierAction),
 }
 
+// Constructor functions to abstract away the underlying types of
+// action. Also `DeletionAction#execute` method for the same purpose.
 impl DeletionAction {
   pub fn delete_key_from_node(
     node_guard: LockSetNodeWriteGuard,
