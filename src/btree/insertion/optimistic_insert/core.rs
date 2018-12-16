@@ -43,6 +43,11 @@ pub fn optimistic_insert(
       let right_split_guard = lock_set.node_write_guard(&child_split_info.new_right_identifier);
       lock_set.hold_node_write_guard(&left_split_guard);
       lock_set.hold_node_write_guard(&right_split_guard);
+
+      // Note: I believe we could give up the write lock on the old
+      // leaf. But no one is going to see that anyway, because new
+      // descents through the parent (which has a write lock on it
+      // presently) will go to the new nodes.
     }
 
     insertion_result
