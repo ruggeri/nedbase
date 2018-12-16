@@ -1,6 +1,6 @@
 use super::InteriorNode;
 use btree::BTree;
-use node::Node;
+use node::{MergeOrRotateResult, Node};
 
 impl InteriorNode {
   pub fn merge_or_rotate_children(
@@ -8,7 +8,7 @@ impl InteriorNode {
     btree: &BTree,
     node1: &mut Node,
     node2: &mut Node,
-  ) {
+  ) -> MergeOrRotateResult {
     // Sort out which node is left and which is right.
     let idx1 = self
       .child_identifiers
@@ -31,13 +31,13 @@ impl InteriorNode {
     // Now perform the merging/rotating.
     Node::merge_or_rotate_sibblings(
       btree, self, left_node, right_node, left_idx,
-    );
+    )
   }
 
   pub(in node) fn handle_child_merge(
     &mut self,
     left_idx: usize,
-    merged_node_identifier: String,
+    merge_node_identifier: String,
   ) {
     // left_idx is what split the merged nodes from each other.
     self.splits.remove(left_idx);
@@ -45,7 +45,7 @@ impl InteriorNode {
     // right identifier.
     self.child_identifiers.remove(left_idx + 1);
     // And update the left one.
-    self.child_identifiers[left_idx] = merged_node_identifier;
+    self.child_identifiers[left_idx] = merge_node_identifier;
   }
 
   pub(in node) fn handle_leaf_child_rotate(
@@ -62,7 +62,7 @@ impl InteriorNode {
     left_node: &InteriorNode,
     right_node: &InteriorNode,
     left_idx: usize,
-  ) {
+  ) -> MergeOrRotateResult {
     // Merge splits
     let mut splits = left_node.splits.clone();
     splits.push(parent_node.splits[left_idx].clone());
@@ -74,10 +74,14 @@ impl InteriorNode {
       .extend(right_node.child_identifiers.iter().cloned());
 
     // Create the new node.
-    let merged_node_identifier =
+    let merge_node_identifier =
       InteriorNode::store(btree, splits, child_identifiers);
 
-    parent_node.handle_child_merge(left_idx, merged_node_identifier);
+    parent_node.handle_child_merge(left_idx, merge_node_identifier.clone());
+
+    MergeOrRotateResult::DidMerge {
+      merge_node_identifier
+    }
   }
 
   pub(in node) fn rotate_left_from_sibbling(
@@ -85,7 +89,7 @@ impl InteriorNode {
     left_node: &mut InteriorNode,
     right_node: &mut InteriorNode,
     left_idx: usize,
-  ) {
+  ) -> MergeOrRotateResult {
     assert!(left_node.num_split_keys() < right_node.num_split_keys());
 
     // Giving two names for the same quantity for clarity.
@@ -112,6 +116,8 @@ impl InteriorNode {
     // the new parent split key.
     let new_parent_split_key = left_node.splits.pop().unwrap();
     parent_node.splits[left_idx] = new_parent_split_key;
+
+    MergeOrRotateResult::DidRotate
   }
 
   pub(in node) fn rotate_right_from_sibbling(
@@ -119,7 +125,7 @@ impl InteriorNode {
     left_node: &mut InteriorNode,
     right_node: &mut InteriorNode,
     left_idx: usize,
-  ) {
+  ) -> MergeOrRotateResult {
     assert!(right_node.num_split_keys() < left_node.num_split_keys());
 
     // Giving two names for the same quantity for clarity.
@@ -150,5 +156,7 @@ impl InteriorNode {
     new_right_splits.append(&mut right_node.splits);
     right_node.splits = new_right_splits;
     parent_node.splits[left_idx] = left_node.splits.pop().unwrap();
+
+    MergeOrRotateResult::DidRotate
   }
 }

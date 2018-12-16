@@ -1,5 +1,5 @@
 use btree::BTree;
-use node::{InteriorNode, LeafNode};
+use node::{InteriorNode, LeafNode, MergeOrRotateResult};
 
 impl LeafNode {
   pub fn merge_sibblings(
@@ -8,13 +8,17 @@ impl LeafNode {
     left_node: &mut LeafNode,
     right_node: &mut LeafNode,
     left_idx: usize,
-  ) {
+  ) -> MergeOrRotateResult {
     let mut keys = left_node.keys.clone();
     keys.extend(right_node.keys.iter().cloned());
 
-    let merged_node_identifier = LeafNode::store(btree, keys);
+    let merge_node_identifier = LeafNode::store(btree, keys);
 
-    parent_node.handle_child_merge(left_idx, merged_node_identifier);
+    parent_node.handle_child_merge(left_idx, merge_node_identifier.clone());
+
+    MergeOrRotateResult::DidMerge {
+      merge_node_identifier
+    }
   }
 
   pub fn rotate_left_from_sibbling(
@@ -22,7 +26,7 @@ impl LeafNode {
     left_node: &mut LeafNode,
     right_node: &mut LeafNode,
     left_idx: usize,
-  ) {
+  ) -> MergeOrRotateResult {
     assert!(left_node.num_keys() < right_node.num_keys());
 
     let num_keys_to_move =
@@ -40,6 +44,8 @@ impl LeafNode {
       .clone();
 
     parent_node.handle_leaf_child_rotate(left_idx, new_split_key);
+
+    MergeOrRotateResult::DidRotate
   }
 
   pub fn rotate_right_from_sibbling(
@@ -47,7 +53,7 @@ impl LeafNode {
     left_node: &mut LeafNode,
     right_node: &mut LeafNode,
     left_idx: usize,
-  ) {
+  ) -> MergeOrRotateResult {
     assert!(right_node.num_keys() < left_node.num_keys());
 
     let num_keys_to_move =
@@ -72,5 +78,7 @@ impl LeafNode {
       .clone();
 
     parent_node.handle_leaf_child_rotate(left_idx, new_split_key);
+
+    MergeOrRotateResult::DidRotate
   }
 }

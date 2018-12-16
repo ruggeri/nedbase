@@ -8,5 +8,5 @@ pub use self::base_node::Node;
 pub use self::interior_node::InteriorNode;
 pub use self::leaf_node::LeafNode;
 pub use self::result_types::{
-  DeletionResult, InsertionResult, SplitInfo,
+  DeletionResult, InsertionResult, MergeOrRotateResult, SplitInfo,
 };

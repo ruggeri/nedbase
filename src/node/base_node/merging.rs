@@ -1,6 +1,6 @@
 use super::Node;
 use btree::BTree;
-use node::{InteriorNode, LeafNode};
+use node::{InteriorNode, LeafNode, MergeOrRotateResult};
 
 // These are methods common to InteriorNode and LeafNode for merging and
 // rotation.
@@ -11,7 +11,7 @@ impl Node {
     left_node: &mut Node,
     right_node: &mut Node,
     left_idx: usize,
-  ) {
+  ) -> MergeOrRotateResult {
     match (
       left_node.can_delete_without_becoming_deficient(),
       right_node.can_delete_without_becoming_deficient(),
@@ -48,7 +48,7 @@ impl Node {
     left_node: &mut Node,
     right_node: &mut Node,
     left_idx: usize,
-  ) {
+  ) -> MergeOrRotateResult {
     match (left_node, right_node) {
       (Node::LeafNode(left_node), Node::LeafNode(right_node)) => {
         LeafNode::merge_sibblings(
@@ -80,7 +80,7 @@ impl Node {
     left_node: &mut Node,
     right_node: &mut Node,
     left_idx: usize,
-  ) {
+  ) -> MergeOrRotateResult {
     match (left_node, right_node) {
       (Node::LeafNode(left_node), Node::LeafNode(right_node)) => {
         LeafNode::rotate_right_from_sibbling(
@@ -110,7 +110,7 @@ impl Node {
     left_node: &mut Node,
     right_node: &mut Node,
     left_idx: usize,
-  ) {
+  ) -> MergeOrRotateResult {
     match (left_node, right_node) {
       (Node::LeafNode(left_node), Node::LeafNode(right_node)) => {
         LeafNode::rotate_left_from_sibbling(
