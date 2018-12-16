@@ -88,7 +88,7 @@ fn try_to_acquire_write_guard_path(
         )
         .child_identifier_by_key(insert_key);
 
-      lock_set.node_write_guard_for_hold(child_identifier)
+      lock_set.node_write_guard(child_identifier)
     };
 
     // If by fortune this child_guard has become stable, we can release
@@ -116,9 +116,9 @@ fn try_to_acquire_top_write_guard(
       // There may be no parent_read_guard because we may have to split
       // all the way through the root.
       let root_identifier_guard =
-        lock_set.root_identifier_write_guard_for_hold();
+        lock_set.root_identifier_write_guard();
       let root_node_guard = lock_set
-        .node_write_guard_for_hold(&root_identifier_guard.identifier());
+        .node_write_guard(&root_identifier_guard.identifier());
 
       // There is a chance that by fortune the root_node_guard did
       // become stable. But assuming not, we must hold onto the root
@@ -141,7 +141,7 @@ fn try_to_acquire_top_write_guard(
       // acquired.
       let deepest_stable_parent = match parent_read_guard.downcast() {
         (Some(root_identifier), None) => {
-          lock_set.node_write_guard_for_hold(&root_identifier)
+          lock_set.node_write_guard(&root_identifier)
         }
 
         (None, Some(parent_node)) => {
@@ -150,7 +150,7 @@ fn try_to_acquire_top_write_guard(
               "a parent node must be an interior node",
             )
             .child_identifier_by_key(insert_key);
-          lock_set.node_write_guard_for_hold(child_identifier)
+          lock_set.node_write_guard(child_identifier)
         }
 
         _ => panic!("Guards are always for a RootIdentifier or a Node"),

@@ -12,10 +12,9 @@ pub fn pessimistic_insert(
 
   // Acquire write lock on root identifier, and then on the root node.
   {
-    let identifier_guard =
-      lock_set.root_identifier_write_guard_for_hold();
+    let identifier_guard = lock_set.root_identifier_write_guard();
     let current_node_guard = lock_set
-      .node_write_guard_for_hold(&identifier_guard.identifier());
+      .node_write_guard(&identifier_guard.identifier());
 
     // If root node won't need to split, we can release the write
     // guard on the root identifier.
@@ -52,7 +51,7 @@ pub fn pessimistic_insert(
       );
 
       let child_identifier = node.child_identifier_by_key(insert_key);
-      lock_set.node_write_guard_for_hold(child_identifier)
+      lock_set.node_write_guard(child_identifier)
     };
 
     // Whenever we encounter a stable node, we can clear all previously
@@ -68,20 +67,35 @@ pub fn pessimistic_insert(
     write_guards.push(current_node_guard.upcast());
   }
 
-  // TODO: Super hacky way to hold onto held locks for 2PL.
-  lock_set.freeze_held_guards();
-
   // After descending all the way, perform the insert at the leaf.
   let mut insertion_result = {
     let mut last_guard = write_guards.pop(
       "should have acquired at least one write guard for insertion",
     );
+
+    // For 2PL purposes, we must hold the write guard through the rest
+    // of the transaction.
+    lock_set.hold_write_guard(&last_guard);
+
+    // Perform the insert.
     let mut last_node =
       last_guard.unwrap_node_mut_ref("should be inserting at a node");
-
-    last_node
+    let insertion_result = last_node
       .unwrap_leaf_node_mut_ref("insertion should happen at leaf node")
-      .insert(btree, String::from(insert_key))
+      .insert(btree, String::from(insert_key));
+
+    if let InsertionResult::DidInsertWithSplit(ref child_split_info) =
+      insertion_result
+    {
+      // If we have split new leaves, we want to keep and hold locks on
+      // them for 2PL purposes.
+      let left_split_guard = lock_set.node_write_guard(&child_split_info.new_left_identifier);
+      let right_split_guard = lock_set.node_write_guard(&child_split_info.new_right_identifier);
+      lock_set.hold_node_write_guard(&left_split_guard);
+      lock_set.hold_node_write_guard(&right_split_guard);
+    }
+
+    insertion_result
   };
 
   // Bubble up. For as long as we are splitting children, insert the

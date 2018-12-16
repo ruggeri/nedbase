@@ -18,10 +18,9 @@ where
 
   // Acquire read lock on root identifier, and then on the root node.
   {
-    let identifier_guard =
-      lock_set.root_identifier_read_guard_for_temp();
+    let identifier_guard = lock_set.temp_root_identifier_read_guard();
     let current_node_guard =
-      lock_set.node_read_guard_for_temp(&identifier_guard.identifier());
+      lock_set.temp_node_read_guard(&identifier_guard.identifier());
 
     read_guards.push(identifier_guard.upcast());
     read_guards.push(current_node_guard.upcast());
@@ -50,7 +49,7 @@ where
           "should be descending through InteriorNode",
         )
         .child_identifier_by_key(key);
-      lock_set.node_read_guard_for_temp(child_identifier)
+      lock_set.temp_node_read_guard(child_identifier)
     };
 
     // Whenever we encounter a stable node, we can clear all but the

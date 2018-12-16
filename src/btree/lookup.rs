@@ -4,10 +4,6 @@ use locking::{LockSet, LockSetNodeReadGuard};
 impl BTree {
   pub fn contains_key(lock_set: &mut LockSet, key: &str) -> bool {
     let guard = BTree::find_leaf_for_key(lock_set, key);
-
-    // TODO: Super hacky way to hold onto held locks for 2PL.
-    lock_set.freeze_held_guards();
-
     let node = guard
       .unwrap_leaf_node_ref("find_leaf_for_key must return leaf node");
 
@@ -25,9 +21,9 @@ impl BTree {
     // locks.
     let (mut _parent_guard, mut current_node_guard) = {
       let root_identifier_guard =
-        lock_set.root_identifier_read_guard_for_temp();
+        lock_set.temp_root_identifier_read_guard();
       let mut current_node_guard = lock_set
-        .node_read_guard_for_temp(&root_identifier_guard.identifier());
+        .temp_node_read_guard(&root_identifier_guard.identifier());
 
       (root_identifier_guard.upcast(), current_node_guard)
     };
@@ -49,7 +45,7 @@ impl BTree {
         let child_identifier =
           current_node.child_identifier_by_key(key);
 
-        lock_set.node_read_guard_for_temp(child_identifier)
+        lock_set.temp_node_read_guard(child_identifier)
       };
 
       _parent_guard = current_node_guard.upcast();
@@ -65,6 +61,9 @@ impl BTree {
     let target_identifier =
       String::from(current_node_guard.unwrap_node_ref().identifier());
     current_node_guard.release();
-    lock_set.node_read_guard_for_hold(&target_identifier)
+    let node_guard = lock_set.node_read_guard(&target_identifier);
+    // Note that we hold the read guard for 2PL.
+    lock_set.hold_node_read_guard(&node_guard);
+    node_guard
   }
 }

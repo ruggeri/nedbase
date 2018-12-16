@@ -15,23 +15,37 @@ pub fn optimistic_insert(
   let mut write_guard_path =
     acquire_write_guard_path(lock_set, insert_key);
 
-  // TODO: Super hacky way to hold onto held locks for 2PL.
-  lock_set.freeze_held_guards();
-
   // Now we perform the insertion at the leaf node. This may trigger a
   // split.
   let mut insertion_result = {
-    let mut write_guard = write_guard_path
+    let mut last_guard = write_guard_path
       .pop("there should be at least one write node: the leaf to insert into");
 
-    let mut last_node = write_guard
-      .unwrap_node_mut_ref("last write guard should be a node guard");
+    // For 2PL purposes, we must hold the write guard through the rest
+    // of the transaction.
+    lock_set.hold_write_guard(&last_guard);
 
-    last_node
+    // Perform the insert.
+    let mut last_node = last_guard
+      .unwrap_node_mut_ref("last write guard should be a node guard");
+    let insertion_result = last_node
       .unwrap_leaf_node_mut_ref(
         "last node on write guard path should be the leaf node",
       )
-      .insert(btree, String::from(insert_key))
+      .insert(btree, String::from(insert_key));
+
+    if let InsertionResult::DidInsertWithSplit(ref child_split_info) =
+      insertion_result
+    {
+      // If we have split new leaves, we want to keep and hold locks on
+      // them for 2PL purposes.
+      let left_split_guard = lock_set.node_write_guard(&child_split_info.new_left_identifier);
+      let right_split_guard = lock_set.node_write_guard(&child_split_info.new_right_identifier);
+      lock_set.hold_node_write_guard(&left_split_guard);
+      lock_set.hold_node_write_guard(&right_split_guard);
+    }
+
+    insertion_result
   };
 
   // Handle splits for as far up as we need to.
