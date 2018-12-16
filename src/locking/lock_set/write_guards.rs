@@ -32,6 +32,10 @@ impl LockSetWriteGuard {
     LockSetWriteGuard { guard }
   }
 
+  pub(in super) fn clone_ref_cell_guard(&self) -> Rc<RefCell<Guard>> {
+    Rc::clone(&self.guard)
+  }
+
   // TODO: I don't love that we are handing out the primitive
   // WriteGuards...
   pub fn guard(&self) -> Ref<WriteGuard> {
@@ -69,6 +73,17 @@ impl LockSetNodeWriteGuard {
     guard: Rc<RefCell<Guard>>,
   ) -> LockSetNodeWriteGuard {
     LockSetNodeWriteGuard { guard }
+  }
+
+  pub(in super) fn clone_ref_cell_guard(&self) -> Rc<RefCell<Guard>> {
+    Rc::clone(&self.guard)
+  }
+
+  pub fn is_leaf_node(&self) -> bool {
+    let guard = self.guard.borrow();
+    guard.unwrap_node_ref(
+      "Guard ref in LockSetNodeWriteGuard doesn't hold Node?"
+    ).is_leaf_node()
   }
 
   pub fn unwrap_node_ref(&self) -> Ref<Node> {
