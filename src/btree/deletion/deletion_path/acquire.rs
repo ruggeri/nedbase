@@ -2,6 +2,8 @@ use super::{DeletionPath, DeletionPathBuilder};
 use btree::deletion::acquire_parent_of_deepest_stable_node;
 use locking::LockSet;
 
+// Acquires a DeletionPath. The DeletionPath is the series of actions to
+// take to perform the delete.
 pub fn acquire_deletion_path(
   lock_set: &mut LockSet,
   key_to_delete: &str,
@@ -9,17 +11,18 @@ pub fn acquire_deletion_path(
   // Start building the path. Starting a builder acquires the first
   // write lock.
   let mut builder = loop {
-    let builder = new_deletion_path_builder(lock_set, key_to_delete);
+    let builder_option =
+      new_deletion_path_builder(lock_set, key_to_delete);
 
     // If the deepest node stayed stable, then the builder will be
     // constructed. We can begin to descend.
-    if builder.is_some() {
-      break builder.unwrap();
+    if builder_option.is_some() {
+      break builder_option.unwrap();
     }
 
     // The deepest stable node may go unstable due to simultaneous
-    // delete, which means we must try everything again and loop back
-    // around.
+    // deletions. In that case, we must try everything again, starting
+    // from the root.
   };
 
   // We descend, taking write locks all the way down.
@@ -27,6 +30,7 @@ pub fn acquire_deletion_path(
     builder.extend_deletion_path(lock_set, key_to_delete);
   }
 
+  // And now we pull out the DeletionPath as the builder's job is done.
   builder.finish(key_to_delete)
 }
 
@@ -59,7 +63,8 @@ fn new_deletion_path_builder(
   // DeletionPathBuilder off by locking it.
   let builder_option = match parent_guard.downcast() {
     // If the deepest stable node is the root, then parent_guard will be
-    // a read guard on the root_identifier.
+    // a read guard on the root_identifier. We want the builder to write
+    // lock the root node.
     (Some(root_identifier), None) => {
       DeletionPathBuilder::new_from_stable_parent(
         lock_set,

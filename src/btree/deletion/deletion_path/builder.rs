@@ -1,19 +1,24 @@
 use super::{DeletionAction, DeletionPath};
 use locking::{LockSet, LockSetNodeWriteGuard};
 
-// This is a helper that builds a DeletionPath.
+// This is a helper that builds a DeletionPath. When building a
+// DeletionPath, it helps to remember who your parent node was.
 
 pub struct DeletionPathBuilder {
+  // `current_node` is the last node on the DeletionPath to have been
+  // pushed.
   current_node: LockSetNodeWriteGuard,
   path: DeletionPath,
 }
 
 impl DeletionPathBuilder {
-  // When we are unstable all the way to the root, we acquire write
-  // locks on both the root identifier AND the root node.
+  // Build a DeletionPathBuilder. When we are unstable all the way to
+  // the root, the top action will be to do an update on the root
+  // identifier.
   pub fn new_from_unstable_root(
     lock_set: &mut LockSet,
   ) -> DeletionPathBuilder {
+    // Acquire locks for the root identifier and the current root node.
     let root_identifier_guard =
       lock_set.root_identifier_write_guard_for_hold();
     let root_node_guard = lock_set
@@ -34,12 +39,12 @@ impl DeletionPathBuilder {
     }
   }
 
-  // When there is a top stable node, we acquire a write lock on it.
-  // This may fail if the top node goes unstable.
+  // Build a DeletionPathBuilder when there is a top stable node.
   pub fn new_from_stable_parent(
     lock_set: &mut LockSet,
     stable_ancestor_identifier: &str,
   ) -> Option<DeletionPathBuilder> {
+    // First, acquire a guard on the stable ancestor.
     let stable_node_guard =
       lock_set.node_write_guard_for_hold(stable_ancestor_identifier);
 
@@ -55,6 +60,10 @@ impl DeletionPathBuilder {
       return None;
     }
 
+    // If the top stable node is still stable, then it is the
+    // "current_node." At first there is not action in the path. But
+    // when we do push the first action, it can refer to `current_node`
+    // as its parent.
     let builder = DeletionPathBuilder {
       current_node: stable_node_guard,
       path: DeletionPath { actions: vec![] },
@@ -63,8 +72,8 @@ impl DeletionPathBuilder {
     Some(builder)
   }
 
-  // We extend our path by locking a new path node, and also a sibbling to
-  // merge with (or rotate with).
+  // We extend our path by locking a new path node, and also a sibbling
+  // to merge with (or rotate with).
   pub fn extend_deletion_path(
     &mut self,
     lock_set: &mut LockSet,
@@ -115,9 +124,10 @@ impl DeletionPathBuilder {
     self.path.push_action(action);
 
     // Last, update the current_node.
-    self.current_node = child_node_guard
+    self.current_node = child_node_guard;
   }
 
+  // This acquires a lock on the sibbling node to merge with.
   fn acquire_sibbling_node(
     &mut self,
     lock_set: &mut LockSet,
@@ -128,7 +138,8 @@ impl DeletionPathBuilder {
         panic!("non-root node should never have no sibblings")
       }
 
-      // If there is only one sibbling, we don't get a choice.
+      // If there is only one sibbling, we don't get a choice. We must
+      // merge/rotate with that sibbling.
       (Some(sibbling_node_identifier), None)
       | (None, Some(sibbling_node_identifier)) => {
         lock_set.node_write_guard_for_hold(&sibbling_node_identifier)
@@ -139,14 +150,16 @@ impl DeletionPathBuilder {
         Some(right_sibbling_node_identifier),
       ) => {
         // I put this in a scope because I don't want to retain the
-        // reference to the guard when I do operations to acquire the
-        // right sibbling below.
+        // reference to the left sibbling's guard when I do operations
+        // to acquire the right sibbling below.
         //
-        // Prefer rotating from the left node. Probably fine.
+        // Prefer rotating from the left node. Probably fine to be
+        // biased like this.
         {
           let left_sibbling_guard = lock_set
             .node_write_guard_for_hold(&left_sibbling_node_identifier);
 
+          // If the left sibbling has spare keys, rotate them to us.
           if left_sibbling_guard
             .unwrap_node_ref()
             .can_delete_without_becoming_deficient()
@@ -155,8 +168,9 @@ impl DeletionPathBuilder {
           }
         }
 
-        // Since you can't rotate from the left sibbling, try using the
-        // right sibbling. Prefer merging from the right.
+        // If you can't rotate from the left sibbling, try using the
+        // right sibbling. Note: while we prefer the left sibbling for
+        // rotation, we prefer the right sibbling for merging.
         lock_set
           .node_write_guard_for_hold(&right_sibbling_node_identifier)
       }
@@ -165,7 +179,8 @@ impl DeletionPathBuilder {
 
   // When done, we discard the builder and keep the path it has built.
   pub fn finish(mut self, key_to_delete: &str) -> DeletionPath {
-    // One last thing to do! Add a final action of deleting the key!
+    // One last thing to do! Add a final action for deleting the key at
+    // the LeafNode!
     self.path.push_action(DeletionAction::delete_key_from_node(
       self.current_node,
       key_to_delete,

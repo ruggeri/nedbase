@@ -8,15 +8,15 @@ pub fn delete(
   lock_set: &mut LockSet,
   key_to_delete: &str,
 ) {
-  // Acquire locks.
+  // Acquire locks. `deletion_path` holds the locks, and remembers what
+  // to do at each step.
   let mut deletion_path =
     acquire_deletion_path(lock_set, key_to_delete);
 
   loop {
-    // Unwrap the action we must take for this deficient node.
+    // Perform each of the actions. The first one (presumably) will
+    // delete the key.
     let action = deletion_path.pop_action();
-
-    // Execute the action.
     let result = action.execute(btree);
 
     // Action may have us stop if we hit a stable parent or consume the

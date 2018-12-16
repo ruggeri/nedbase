@@ -1,10 +1,7 @@
 use super::DeletionAction;
 
-// The DeletionPath consists of all the nodes that get merged (along
-// with their merge sibbling), plus eventually the deepest stable
-// ancestor (which is mutated by its children's merge). If there is no
-// stable ancestor, then the deletion path goes all the way to the root
-// identifier.
+// A DeletionPath consists of a series of DeletionActions. Each action
+// holds the locks needed to do its job, plus the logic it must perform.
 
 pub struct DeletionPath {
   pub(super) actions: Vec<DeletionAction>,
