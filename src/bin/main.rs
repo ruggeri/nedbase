@@ -13,6 +13,13 @@ const NUM_THREADS: u32 = 32;
 // is potential deadlock even when doing carefully ordered updates
 // because descending takes and holds locks even when it can't
 // succeed...
+//
+// The solution is either:
+//
+// (1) Release locks on descents that fail and wait to be awoken by a
+//     coordinator,
+// (2) Adopt a strategy like B-Link trees that does not need to hold
+//     multiple simultaneous write locks.
 
 fn main() {
   // Make the BTree.
@@ -91,7 +98,7 @@ fn run_thread(btree: &Arc<BTree>, keyset: Arc<Vec<(String, String)>>) {
     } else {
       let mut lock_set = LockSet::new(btree, TransactionMode::ReadOnly);
       let key1_present = BTree::contains_key(&mut lock_set, &key1);
-      // let key2_present = BTree::contains_key(&mut lock_set, &key2);
+      let key2_present = BTree::contains_key(&mut lock_set, &key2);
 
       // if key1_present != key2_present {
       //   // println!("Read transaction isolation violated!");
