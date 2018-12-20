@@ -1,5 +1,5 @@
 use locking::{Guard, WriteGuard};
-use node::{InteriorNode, Node};
+use node::{InteriorNode, LeafNode, Node};
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
@@ -112,6 +112,32 @@ impl LockSetNodeWriteGuard {
           "Guard ref in LockSetNodeWriteGuard doesn't hold Node?",
         )
         .unwrap_interior_node_ref(msg)
+    })
+  }
+
+  pub fn unwrap_interior_node_mut_ref(
+    &self,
+    msg: &'static str,
+  ) -> RefMut<InteriorNode> {
+    RefMut::map(self.guard.borrow_mut(), |guard| {
+      guard
+        .unwrap_node_mut_ref(
+          "Guard ref in LockSetNodeReadGuard doesn't hold Node?",
+        )
+        .unwrap_interior_node_mut_ref(msg)
+    })
+  }
+
+  pub fn unwrap_leaf_node_mut_ref(
+    &self,
+    msg: &'static str,
+  ) -> RefMut<LeafNode> {
+    RefMut::map(self.guard.borrow_mut(), |guard| {
+      guard
+        .unwrap_node_mut_ref(
+          "Guard ref in LockSetNodeReadGuard doesn't hold Node?",
+        )
+        .unwrap_leaf_node_mut_ref(msg)
     })
   }
 

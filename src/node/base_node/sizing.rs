@@ -31,7 +31,7 @@ impl Node {
   }
 
   // Helper to determine whether a node is deficient in size.
-  pub fn is_deficient_size(
+  pub(in node) fn _is_deficient(
     num_keys: usize,
     max_key_capacity: usize,
   ) -> bool {

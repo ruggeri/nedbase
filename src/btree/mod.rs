@@ -1,9 +1,10 @@
 #[allow(clippy::module_inception)]
 mod btree;
-mod deletion;
+// mod deletion;
 mod insertion;
 mod lookup;
 mod storage;
+mod validate;
 
 // util is helpful in submodules too.
 pub(in btree) mod util;

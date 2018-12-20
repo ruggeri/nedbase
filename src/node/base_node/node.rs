@@ -1,4 +1,4 @@
-use node::{InteriorNode, LeafNode};
+use node::{InteriorNode, LeafNode, TraversalDirection};
 
 pub enum Node {
   LeafNode(LeafNode),
@@ -24,6 +24,13 @@ impl Node {
     match self {
       Node::LeafNode(..) => true,
       _ => false,
+    }
+  }
+
+  pub fn traverse_toward(&self, key: &str) -> TraversalDirection {
+    match self {
+      Node::LeafNode(leaf_node) => leaf_node.traverse_toward(key),
+      Node::InteriorNode(interior_node) => interior_node.traverse_toward(key),
     }
   }
 }

@@ -10,7 +10,7 @@ impl InteriorNode {
       return false;
     }
 
-    !Node::is_deficient_size(
+    !Node::_is_deficient(
       self.num_split_keys() - 1,
       self.max_key_capacity,
     )
@@ -21,10 +21,14 @@ impl InteriorNode {
   }
 
   pub fn is_deficient(&self) -> bool {
-    Node::is_deficient_size(
+    Node::_is_deficient(
       self.num_split_keys(),
       self.max_key_capacity,
     )
+  }
+
+  pub fn is_overfull(&self) -> bool {
+    self.num_split_keys() >= self.max_key_capacity
   }
 
   pub fn num_children(&self) -> usize {

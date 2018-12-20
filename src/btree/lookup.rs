@@ -1,5 +1,6 @@
 use btree::BTree;
 use locking::{LockSet, LockSetNodeReadGuard};
+use node::TraversalDirection;
 
 impl BTree {
   pub fn contains_key(lock_set: &mut LockSet, key: &str) -> bool {
@@ -14,56 +15,49 @@ impl BTree {
     lock_set: &mut LockSet,
     key: &str,
   ) -> LockSetNodeReadGuard {
-    // We will only assign to _parent_guard, but it is important to hold
-    // onto.
-    //
-    // We descend down the tree, hand-over-hand, taking temporary read
-    // locks.
-    let (mut _parent_guard, mut current_node_guard) = {
-      let root_identifier_guard =
-        lock_set.temp_root_identifier_read_guard();
-      let mut current_node_guard = lock_set
-        .temp_node_read_guard(&root_identifier_guard.identifier());
-
-      (root_identifier_guard.upcast(), current_node_guard)
+    let mut current_identifier = {
+      let root_identifier_guard = lock_set.temp_root_identifier_read_guard();
+      let root_identifier = root_identifier_guard.identifier();
+      root_identifier.clone()
     };
 
     loop {
-      // If we hit a LeafNode we are done descending.
-      if current_node_guard.unwrap_node_ref().is_leaf_node() {
-        break;
-      }
-
-      // Drop the parent guard before trying to acquiring the next child
-      // on the path.
-      _parent_guard.release();
-
-      let child_guard = {
-        let current_node = current_node_guard.unwrap_interior_node_ref(
-          "must not try to descend through leaf node",
-        );
-        let child_identifier =
-          current_node.child_identifier_by_key(key);
-
-        lock_set.temp_node_read_guard(child_identifier)
+      let guard = lock_set.temp_node_read_guard(&current_identifier);
+      let direction = {
+        guard.unwrap_node_ref().traverse_toward(key)
       };
 
-      _parent_guard = current_node_guard.upcast();
-      current_node_guard = child_guard;
+      match direction {
+        TraversalDirection::Arrived => break,
+        TraversalDirection::MoveDown { child_node_identifier } => {
+          current_identifier = child_node_identifier;
+        }
+        TraversalDirection::MoveRight { next_node_identifier } => {
+          current_identifier = next_node_identifier;
+        }
+      }
     }
 
-    // Now that we are all finished descending, we will release the
-    // temporary read guard on the leaf, and reacquire. This is
-    // important if we are doing a lookup in a ReadWrite transaction.
-    //
-    // TODO: We could probably search again in the parent for this
-    // identifier without doing a String::from. But this seems okay.
-    let target_identifier =
-      String::from(current_node_guard.unwrap_node_ref().identifier());
-    current_node_guard.release();
-    let node_guard = lock_set.node_read_guard(&target_identifier);
-    // Note that we hold the read guard for 2PL.
-    lock_set.hold_node_read_guard(&node_guard);
-    node_guard
+    loop {
+      let guard = lock_set.node_read_guard(&current_identifier);
+      let direction = {
+        guard.unwrap_node_ref().traverse_toward(key)
+      };
+
+      match direction {
+        TraversalDirection::Arrived => {
+          lock_set.hold_node_read_guard(&guard);
+          return guard;
+        },
+
+        TraversalDirection::MoveDown { child_node_identifier } => {
+          current_identifier = child_node_identifier;
+        }
+
+        TraversalDirection::MoveRight { next_node_identifier } => {
+          current_identifier = next_node_identifier;
+        }
+      }
+    }
   }
 }

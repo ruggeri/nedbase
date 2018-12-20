@@ -1,5 +1,5 @@
 use super::InteriorNode;
-use node::util::search_sorted_strings_for_str;
+use node::{util::search_sorted_strings_for_str, MaxValue, TraversalDirection};
 
 // These methods are all ways to move from an InteriorNode to a child.
 impl InteriorNode {
@@ -41,5 +41,18 @@ impl InteriorNode {
       };
 
     (left_sibbling_identifier, right_sibbling_identifier)
+  }
+
+  pub fn traverse_toward(&self, key: &str) -> TraversalDirection {
+    if !self.max_value.is_ge_to(key) {
+      let next_node_identifier =
+        self.next_node_identifier.clone().expect("node with definite max value must have next");
+      TraversalDirection::MoveRight { next_node_identifier }
+    } else {
+      let child_node_identifier = self.child_identifier_by_key(key);
+      TraversalDirection::MoveDown {
+        child_node_identifier: String::from(child_node_identifier),
+      }
+    }
   }
 }

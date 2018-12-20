@@ -10,7 +10,7 @@ impl LeafNode {
       return false;
     }
 
-    !Node::is_deficient_size(self.num_keys() - 1, self.max_key_capacity)
+    !Node::_is_deficient(self.num_keys() - 1, self.max_key_capacity)
   }
 
   pub fn can_grow_without_split(&self) -> bool {
@@ -18,7 +18,11 @@ impl LeafNode {
   }
 
   pub fn is_deficient(&self) -> bool {
-    Node::is_deficient_size(self.num_keys(), self.max_key_capacity)
+    Node::_is_deficient(self.num_keys(), self.max_key_capacity)
+  }
+
+  pub fn is_overfull(&self) -> bool {
+    self.num_keys() >= self.max_key_capacity
   }
 
   pub fn num_keys(&self) -> usize {

@@ -1,5 +1,5 @@
 use super::{
-  LockSet, LockSetNodeReadGuard, LockSetRootIdentifierReadGuard,
+  LockSet, LockSetNodeReadGuard, LockSetReadGuard, LockSetRootIdentifierReadGuard,
   LockSetValue,
 };
 use locking::{Guard, LockMode, LockTarget, ReadGuard};
@@ -22,18 +22,18 @@ impl LockSet {
   ) -> LockSetNodeReadGuard {
     // TODO: This String::from seems wasteful just to do a lookup...
     let guard = self
-      .temp_read_guard(&LockTarget::Node(String::from(identifier)));
+      ._temp_read_guard(&LockTarget::Node(String::from(identifier)));
     LockSetNodeReadGuard::from_guard(guard)
   }
 
   pub fn temp_root_identifier_read_guard(
     &mut self,
   ) -> LockSetRootIdentifierReadGuard {
-    let guard = self.temp_read_guard(&LockTarget::RootIdentifier);
+    let guard = self._temp_read_guard(&LockTarget::RootIdentifier);
     LockSetRootIdentifierReadGuard::from_guard(guard)
   }
 
-  fn temp_read_guard(
+  fn _temp_read_guard(
     &mut self,
     lock_target: &LockTarget,
   ) -> Rc<RefCell<Guard>> {

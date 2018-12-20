@@ -1,4 +1,4 @@
-use locking::{Guard, ReadGuard, WriteGuard};
+use locking::Guard;
 use node::{InteriorNode, LeafNode, Node};
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
@@ -19,8 +19,9 @@ use std::rc::Rc;
 // not *use* the same locks simultaneously.
 
 #[derive(Clone)]
-pub struct LockSetReadGuard {
-  guard: Rc<RefCell<Guard>>,
+pub enum LockSetReadGuard {
+  Node(LockSetNodeReadGuard),
+  RootIdentifier(LockSetRootIdentifierReadGuard),
 }
 
 #[derive(Clone)]
@@ -34,10 +35,6 @@ pub struct LockSetRootIdentifierReadGuard {
 }
 
 impl LockSetReadGuard {
-  pub fn from_guard(guard: Rc<RefCell<Guard>>) -> LockSetReadGuard {
-    LockSetReadGuard { guard }
-  }
-
   // This lets them drop the lock early if they way, without having to
   // use std::mem::drop.
   //
@@ -47,52 +44,23 @@ impl LockSetReadGuard {
   pub fn release(self) {}
 
   pub fn unwrap_node_ref(&self, msg: &'static str) -> Ref<Node> {
-    Ref::map(self.guard.borrow(), |guard| guard.unwrap_node_ref(msg))
+    use self::LockSetReadGuard::*;
+
+    match self {
+      Node(node_lock) => node_lock.unwrap_node_ref(),
+      RootIdentifier(_) => panic!(msg),
+    }
   }
 
   pub fn unwrap_root_identifier_ref(
     &self,
     msg: &'static str,
   ) -> Ref<String> {
-    Ref::map(self.guard.borrow(), |guard| {
-      guard.unwrap_root_identifier_ref(msg)
-    })
-  }
+    use self::LockSetReadGuard::*;
 
-  // TODO: This method is a disaster.
-  pub fn downcast(&self) -> (Option<Ref<String>>, Option<Ref<Node>>) {
-    match &(*self.guard.borrow()) {
-      Guard::Read(read_guard) => match read_guard {
-        ReadGuard::NodeReadGuard(_) => (
-          None,
-          Some(self.unwrap_node_ref(
-            "We just verified we're a node read guard...",
-          )),
-        ),
-
-        ReadGuard::RootIdentifierReadGuard(_) => (
-          Some(self.unwrap_root_identifier_ref(
-            "We just verified we're a RootIdentifierReadGuard...",
-          )),
-          None,
-        ),
-      },
-
-      Guard::Write(write_guard) => match write_guard {
-        WriteGuard::NodeWriteGuard(_) => (
-          None,
-          Some(self.unwrap_node_ref(
-            "We just verified we're a node read guard...",
-          )),
-        ),
-
-        WriteGuard::RootIdentifierWriteGuard(_) => (
-          Some(self.unwrap_root_identifier_ref(
-            "We just verified we're a RootIdentifierReadGuard...",
-          )),
-          None,
-        ),
-      },
+    match self {
+      Node(_) => panic!(msg),
+      RootIdentifier(root_identifier_lock) => root_identifier_lock.identifier()
     }
   }
 }
@@ -156,7 +124,7 @@ impl LockSetNodeReadGuard {
   }
 
   pub fn upcast(self) -> LockSetReadGuard {
-    LockSetReadGuard::from_guard(self.guard)
+    LockSetReadGuard::Node(self)
   }
 }
 
@@ -175,6 +143,6 @@ impl LockSetRootIdentifierReadGuard {
   }
 
   pub fn upcast(self) -> LockSetReadGuard {
-    LockSetReadGuard::from_guard(self.guard)
+    LockSetReadGuard::RootIdentifier(self)
   }
 }

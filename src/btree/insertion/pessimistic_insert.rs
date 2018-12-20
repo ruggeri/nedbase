@@ -1,141 +1,245 @@
 use btree::BTree;
-use locking::{LockSet, WriteGuard, WriteGuardPath};
-use node::{InsertionResult, InteriorNode};
+use locking::{LockSet, LockSetNodeWriteGuard};
+use node::{InsertionResult, InteriorNode, Node, SplitInfo, TraversalDirection};
 use std::sync::Arc;
+
+enum InsertPathEntry {
+  ParentChild {
+    parent_node_identifier: String,
+    child_node_identifier: String,
+  },
+
+  RootLevelNode {
+    root_node_identifier: String,
+    root_level_identifier: String,
+    // This can be different if we walk right from the root.
+    current_node_identifier: String,
+  }
+}
+
+impl InsertPathEntry {
+  pub fn current_node_identifier(&self) -> &String {
+    use self::InsertPathEntry::*;
+
+    match self {
+      RootLevelNode { ref current_node_identifier, .. } => current_node_identifier,
+      ParentChild { ref child_node_identifier, .. } => child_node_identifier,
+    }
+  }
+}
 
 pub fn pessimistic_insert(
   btree: &Arc<BTree>,
   lock_set: &mut LockSet,
-  insert_key: &str,
+  key_to_insert: &str,
 ) {
-  let mut write_guards = WriteGuardPath::new();
+  let mut insert_path = descend_to_leaf_with_key(lock_set, key_to_insert, |_| false);
 
-  // Acquire write lock on root identifier, and then on the root node.
-  {
-    let identifier_guard = lock_set.root_identifier_write_guard();
-    let current_node_guard = lock_set
-      .node_write_guard(&identifier_guard.identifier());
+  let mut split_info = {
+    // Got to the leaf. Now acquire write-style!
+    let leaf_entry = insert_path.last().expect("lock_path_identifiers must never be empty");
+    let leaf_identifier = leaf_entry.current_node_identifier();
+    let leaf_guard = scan_right_for_write(lock_set, leaf_identifier, key_to_insert);
+    // We have the write guard! Let's hold onto it since we mutate it.
+    lock_set.hold_node_write_guard(&leaf_guard);
 
-    // If root node won't need to split, we can release the write
-    // guard on the root identifier.
-    if current_node_guard
-      .unwrap_node_ref()
-      .can_grow_without_split()
-    {
-      write_guards.push(current_node_guard.upcast());
-    } else {
-      write_guards.push(identifier_guard.upcast());
-      write_guards.push(current_node_guard.upcast());
-    }
-  }
+    let mut leaf_node = leaf_guard
+      .unwrap_leaf_node_mut_ref("final node is always LeafNode");
+    let insertion_result = leaf_node.insert_key(btree, String::from(key_to_insert));
 
-  // Now descend, taking write locks hand-over-hand. You can release all
-  // prior write locks if you hit a stable node.
-  loop {
-    let current_node_guard = {
-      let prev_node = {
-        let deepest_lock = write_guards.peek_deepest_lock(
-          "since we break at LeafNode, should not run out of locks",
-        );
-        deepest_lock.unwrap_node_ref(
-          "final write guard in path should always be for a node",
-        )
-      };
-
-      if prev_node.is_leaf_node() {
-        break;
-      }
-
-      let node = prev_node.unwrap_interior_node_ref(
-        "must not descend through interior node",
-      );
-
-      let child_identifier = node.child_identifier_by_key(insert_key);
-      lock_set.node_write_guard(child_identifier)
+    // Perform the insertion
+    let mut split_info = match insertion_result {
+      InsertionResult::DidInsertWithSplit(split_info) => split_info,
+      _ => return,
     };
 
-    // Whenever we encounter a stable node, we can clear all previously
-    // acquired write locks.
-    if current_node_guard
-      .unwrap_node_ref()
-      .can_grow_without_split()
-    {
-      write_guards.clear();
-    }
+    // May have to hold the sibbling; since the key could have ended up
+    // there.
+    let sibbling_guard = lock_set.node_write_guard(&split_info.new_right_identifier);
+    lock_set.hold_node_write_guard(&sibbling_guard);
 
-    // Regardless, keep holding this lock.
-    write_guards.push(current_node_guard.upcast());
-  }
-
-  // After descending all the way, perform the insert at the leaf.
-  let mut insertion_result = {
-    let mut last_guard = write_guards.pop(
-      "should have acquired at least one write guard for insertion",
-    );
-
-    // For 2PL purposes, we must hold the write guard through the rest
-    // of the transaction.
-    lock_set.hold_write_guard(&last_guard);
-
-    // Perform the insert.
-    let mut last_node =
-      last_guard.unwrap_node_mut_ref("should be inserting at a node");
-    let insertion_result = last_node
-      .unwrap_leaf_node_mut_ref("insertion should happen at leaf node")
-      .insert(btree, String::from(insert_key));
-
-    if let InsertionResult::DidInsertWithSplit(ref child_split_info) =
-      insertion_result
-    {
-      // If we have split new leaves, we want to keep and hold locks on
-      // them for 2PL purposes.
-      let left_split_guard = lock_set.node_write_guard(&child_split_info.new_left_identifier);
-      let right_split_guard = lock_set.node_write_guard(&child_split_info.new_right_identifier);
-      lock_set.hold_node_write_guard(&left_split_guard);
-      lock_set.hold_node_write_guard(&right_split_guard);
-
-      // Note: I believe we could give up the write lock on the old
-      // leaf. But no one is going to see that anyway, because new
-      // descents through the parent (which has a write lock on it
-      // presently) will go to the new nodes.
-    }
-
-    insertion_result
+    split_info
   };
 
-  // Bubble up. For as long as we are splitting children, insert the
-  // split nodes into their parent.
-  while let InsertionResult::DidInsertWithSplit(child_split_info) =
-    insertion_result
-  {
-    let mut last_write_guard = write_guards
-      .pop("should not run out of write guards while bubbling splits");
-
-    match &mut (*last_write_guard.guard_mut()) {
-      // Typical scenario: a child was split. We must update its
-      // parent.
-      WriteGuard::NodeWriteGuard(ref mut node_guard) => {
-        insertion_result = node_guard
-          .unwrap_interior_node_mut_ref(
-            "parents of split nodes expected to be interior nodes",
-          )
-          .handle_split(btree, child_split_info);
+  loop {
+    let ascent_result = ascend_splitting_nodes(btree, lock_set, insert_path, split_info);
+    match ascent_result {
+      AscentResult::FinishedSplitting => return,
+      AscentResult::RootWasSplit { old_root_level_identifier, split_info: new_split_info } => {
+        insert_path = descend_to_leaf_with_key(lock_set, &new_split_info.new_median, |node_ref| {
+          println!("{}", old_root_level_identifier);
+          match node_ref {
+            Node::LeafNode(..) => false,
+            Node::InteriorNode(inode) => {
+              println!("{}", inode.level_identifier());
+              inode.level_identifier() == old_root_level_identifier
+            }
+          }
+        });
+        split_info = new_split_info;
       }
-
-      // If we split all the way to the top, we have to create a new
-      // root node.
-      WriteGuard::RootIdentifierWriteGuard(
-        ref mut root_identifier_guard,
-      ) => {
-        // First, create the new root node.
-        let new_root_identifier =
-          InteriorNode::store_new_root(btree, child_split_info);
-
-        // Now update the BTree to use the new root node we created.
-        **root_identifier_guard = new_root_identifier;
-
-        break;
-      }
-    };
+    }
   }
+}
+
+fn descend_to_leaf_with_key<F>(lock_set: &mut LockSet, key: &str, stop_early: F) -> Vec<InsertPathEntry>
+  where F: Fn(&Node) -> bool {
+  let mut insert_path = vec![];
+
+  {
+    let root_node_identifier = {
+      let root_node_identifier_guard = lock_set.temp_root_identifier_read_guard();
+      let root_node_identifier_ref = root_node_identifier_guard.identifier();
+      root_node_identifier_ref.clone()
+    };
+
+    let root_node_guard = lock_set.temp_node_read_guard(&root_node_identifier);
+    let root_node = root_node_guard.unwrap_node_ref();
+    let root_level_identifier = match &(*root_node) {
+      Node::LeafNode(..) => String::from("LEAF_LEVEL"),
+      Node::InteriorNode(inode) => String::from(inode.level_identifier()),
+    };
+    let current_node_identifier = root_node_identifier.clone();
+    insert_path.push(InsertPathEntry::RootLevelNode {
+      root_node_identifier,
+      root_level_identifier,
+      current_node_identifier,
+    });
+  }
+
+  loop {
+    let (current_guard, current_identifier) = {
+      let entry = insert_path.last().expect("lock_path_identifiers must never be empty");
+      let current_identifier = entry.current_node_identifier();
+      let current_guard = lock_set.temp_node_read_guard(current_identifier);
+
+      (current_guard, current_identifier.clone())
+    };
+
+    {
+      let node_ref = current_guard.unwrap_node_ref();
+      if stop_early(&node_ref) {
+        return insert_path;
+      }
+    }
+
+    let direction = {
+      current_guard.unwrap_node_ref().traverse_toward(key)
+    };
+
+    match direction {
+      TraversalDirection::Arrived => break,
+
+      TraversalDirection::MoveDown { child_node_identifier } => {
+        insert_path.push(InsertPathEntry::ParentChild {
+          parent_node_identifier: current_identifier,
+          child_node_identifier,
+        });
+      }
+
+      TraversalDirection::MoveRight { next_node_identifier } => {
+        let mut last_entry = insert_path.last_mut().unwrap();
+        match last_entry {
+          InsertPathEntry::RootLevelNode { current_node_identifier, .. } => {
+            // A noble lie.
+            *current_node_identifier = next_node_identifier;
+          }
+
+          InsertPathEntry::ParentChild { child_node_identifier, ..} => {
+            *child_node_identifier = next_node_identifier;
+          }
+        }
+      }
+    }
+  }
+
+  insert_path
+}
+
+fn scan_right_for_write(lock_set: &mut LockSet, start_identifier: &str, key: &str) -> LockSetNodeWriteGuard {
+  let mut current_identifier = String::from(start_identifier);
+  loop {
+    let mut current_guard = lock_set.node_write_guard(&current_identifier);
+    let direction = current_guard.unwrap_node_ref().traverse_toward(key);
+
+    match direction {
+      TraversalDirection::Arrived => {
+        return current_guard;
+      }
+      TraversalDirection::MoveDown { .. } => {
+        // We are only moving right.
+        return current_guard;
+      },
+      TraversalDirection::MoveRight { next_node_identifier } => {
+        current_identifier = next_node_identifier;
+      }
+    }
+  }
+}
+
+enum AscentResult {
+  FinishedSplitting,
+  RootWasSplit {
+    old_root_level_identifier: String,
+    split_info: SplitInfo,
+  },
+}
+
+fn ascend_splitting_nodes(
+  btree: &BTree,
+  lock_set: &mut LockSet,
+  mut insert_path: Vec<InsertPathEntry>,
+  mut split_info: SplitInfo) -> AscentResult {
+
+  let (old_root_node_identifier, old_root_level_identifier) = loop {
+    let path_entry = match insert_path.pop() {
+      None => panic!("Can't run out of entries without root node..."),
+      Some(path_entry) => path_entry,
+    };
+
+    match path_entry {
+      InsertPathEntry::ParentChild { parent_node_identifier, .. } => {
+        let parent_guard = scan_right_for_write(lock_set, &parent_node_identifier, &split_info.new_median);
+        let mut parent_node = parent_guard.unwrap_interior_node_mut_ref("only interior nodes can be parents");
+        match parent_node.handle_split(btree, split_info) {
+          InsertionResult::DidInsertWithSplit(new_split_info) => {
+            split_info = new_split_info;
+            continue;
+          }
+
+          _ => {
+            return AscentResult::FinishedSplitting;
+          }
+        }
+      }
+
+      InsertPathEntry::RootLevelNode { root_node_identifier, root_level_identifier, .. } => {
+        break (root_node_identifier, root_level_identifier);
+      }
+    }
+  };
+
+  println!("YOU MADE IT");
+
+  // You split all the way to the top! Wow!
+  let root_id_guard = lock_set.root_identifier_write_guard();
+  let mut root_identifier = root_id_guard.identifier_mut();
+  println!("{}", old_root_node_identifier);
+  println!("{}", *root_identifier);
+  if old_root_node_identifier != *root_identifier {
+    // Root split on us! Uh-oh!
+    return AscentResult::RootWasSplit {
+      old_root_level_identifier,
+      split_info,
+    }
+  }
+
+  // Thank god! We get to split the root!
+  *root_identifier = InteriorNode::store_new_root(
+    btree,
+    old_root_node_identifier,
+    split_info,
+  );
+
+  AscentResult::FinishedSplitting
 }

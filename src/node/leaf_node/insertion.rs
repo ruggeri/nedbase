@@ -1,13 +1,13 @@
 use super::LeafNode;
 use btree::BTree;
 use node::{
-  util::search_sorted_strings_for_str, InsertionResult, SplitInfo,
+  util::search_sorted_strings_for_str, InsertionResult, MaxValue, SplitInfo,
 };
 
 // These are methods for inserting a value into the LeafNode, and for
 // splitting a LeafNode when it becomes full.
 impl LeafNode {
-  pub fn insert(
+  pub fn insert_key(
     &mut self,
     btree: &BTree,
     key_to_insert: String,
@@ -19,26 +19,23 @@ impl LeafNode {
         Err(idx) => idx,
       };
 
-    // It's easy to insert if we can grow.
-    if self.can_grow_without_split() {
-      self.keys.insert(insertion_idx, key_to_insert);
-      return InsertionResult::DidInsert;
-    }
+    self.keys.insert(insertion_idx, key_to_insert);
 
-    // Welp, we have to split after all.
-    self.insert_and_split(btree, key_to_insert)
+    if !self.is_overfull() {
+      InsertionResult::DidInsert
+    } else {
+      // Welp, we have to split after all.
+      self.split(btree)
+    }
   }
 
-  fn insert_and_split(
-    &self,
+  fn split(
+    &mut self,
     btree: &BTree,
-    key_to_insert: String,
   ) -> InsertionResult {
     // We divide the keys into left/right portions.
-    let mut left_keys =
-      self.keys[0..(self.max_key_capacity / 2)].to_vec();
-    let mut right_keys =
-      self.keys[(self.max_key_capacity / 2)..].to_vec();
+    let left_keys = self.keys[0..(self.max_key_capacity / 2)].to_vec();
+    let right_keys = self.keys[(self.max_key_capacity / 2)..].to_vec();
 
     // We choose a new median.
     let new_median = left_keys
@@ -46,32 +43,18 @@ impl LeafNode {
       .expect("Just split node must have keys")
       .clone();
 
-    // We must insert the new key into one of the halves.
-    {
-      let keys = if key_to_insert <= new_median {
-        &mut left_keys
-      } else {
-        &mut right_keys
-      };
-
-      let insertion_idx =
-        match search_sorted_strings_for_str(keys, &key_to_insert) {
-          Ok(_) => panic!(
-            "key_to_insert wasn't supposed to have been inserted..."
-          ),
-          Err(idx) => idx,
-        };
-
-      keys.insert(insertion_idx, key_to_insert);
-    }
-
     // Create and store new leaf nodes.
-    let new_left_identifier = LeafNode::store(btree, left_keys);
-    let new_right_identifier = LeafNode::store(btree, right_keys);
+    let new_right_identifier = LeafNode::store(
+      btree,
+      right_keys,
+      self.max_value.clone(),
+      self.next_node_identifier.clone(),
+    );
+    self.keys = left_keys;
+    self.max_value = MaxValue::DefiniteValue(new_median.clone());
+    self.next_node_identifier = Some(new_right_identifier.clone());
 
     InsertionResult::DidInsertWithSplit(SplitInfo {
-      old_identifier: self.identifier.clone(),
-      new_left_identifier,
       new_right_identifier,
       new_median,
     })
