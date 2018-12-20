@@ -1,5 +1,5 @@
 use super::InteriorNode;
-use node::{util::search_sorted_strings_for_str, MaxValue, TraversalDirection};
+use node::{util::search_sorted_strings_for_str, TraversalDirection};
 
 // These methods are all ways to move from an InteriorNode to a child.
 impl InteriorNode {

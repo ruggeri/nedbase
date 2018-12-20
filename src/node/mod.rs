@@ -11,6 +11,6 @@ pub use self::interior_node::InteriorNode;
 pub use self::leaf_node::LeafNode;
 pub use self::max_value::MaxValue;
 pub use self::result_types::{
-  DeletionResult, InsertionResult, MergeOrRotateResult, SplitInfo,
+  DeletionResult, InsertionResult, SplitInfo,
 };
 pub use self::traversal_direction::TraversalDirection;

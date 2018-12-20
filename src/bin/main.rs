@@ -88,7 +88,7 @@ fn run_thread(btree: &Arc<BTree>, keyset: Arc<Vec<(String, String)>>) {
     keyset
   };
 
-  let THIRD_OF_KEYSET = keyset.len() / 3;
+  let third_of_keyset = keyset.len() / 3;
 
   for idx in 0..keyset.len() {
     {
@@ -109,7 +109,7 @@ fn run_thread(btree: &Arc<BTree>, keyset: Arc<Vec<(String, String)>>) {
     }
 
     {
-      let idx = (idx + THIRD_OF_KEYSET) % keyset.len();
+      let idx = (idx + third_of_keyset) % keyset.len();
       let (key1, key2) = keyset[idx].clone();
       let mut lock_set = LockSet::new(btree, TransactionMode::ReadOnly);
       let key1_present = BTree::contains_key(&mut lock_set, &key1);
@@ -121,7 +121,7 @@ fn run_thread(btree: &Arc<BTree>, keyset: Arc<Vec<(String, String)>>) {
     }
 
     {
-      // let idx = (idx + 2*THIRD_OF_KEYSET) % keyset.len();
+      // let idx = (idx + 2*third_of_keyset) % keyset.len();
       // let (key1, key2) = keyset[idx].clone();
 
       // let mut lock_set = LockSet::new(btree, TransactionMode::ReadWrite);

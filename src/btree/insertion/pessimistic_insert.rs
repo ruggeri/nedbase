@@ -159,7 +159,7 @@ fn descend_to_leaf_with_key<F>(lock_set: &mut LockSet, key: &str, stop_early: F)
 fn scan_right_for_write(lock_set: &mut LockSet, start_identifier: &str, key: &str) -> LockSetNodeWriteGuard {
   let mut current_identifier = String::from(start_identifier);
   loop {
-    let mut current_guard = lock_set.node_write_guard(&current_identifier);
+    let current_guard = lock_set.node_write_guard(&current_identifier);
     let direction = current_guard.unwrap_node_ref().traverse_toward(key);
 
     match direction {

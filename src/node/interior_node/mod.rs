@@ -1,4 +1,3 @@
-mod merging;
 mod node;
 mod sizing;
 mod splitting;

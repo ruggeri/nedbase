@@ -1,5 +1,5 @@
 use super::{
-  LockSet, LockSetNodeReadGuard, LockSetReadGuard, LockSetRootIdentifierReadGuard,
+  LockSet, LockSetNodeReadGuard, LockSetRootIdentifierReadGuard,
   LockSetValue,
 };
 use locking::{Guard, LockMode, LockTarget, ReadGuard};
