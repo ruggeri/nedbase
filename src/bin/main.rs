@@ -95,13 +95,13 @@ fn run_thread(btree: &Arc<BTree>, keyset: Arc<Vec<(String, String)>>) {
       let (key1, key2) = keyset[idx].clone();
       let mut lock_set = LockSet::new(btree, TransactionMode::ReadWrite);
 
-      BTree::pessimistic_insert(btree, &mut lock_set, &key1);
+      BTree::insert(btree, &mut lock_set, &key1);
       let key1_present = BTree::contains_key(&mut lock_set, &key1);
       if !key1_present {
         println!("Where did key1 go? {}", key1);
       }
 
-      BTree::pessimistic_insert(btree, &mut lock_set, &key2);
+      BTree::insert(btree, &mut lock_set, &key2);
       let key2_present = BTree::contains_key(&mut lock_set, &key2);
       if !key2_present {
         println!("Where did key2 go? {}", key2);
