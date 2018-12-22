@@ -51,8 +51,7 @@ fn main() {
   }
 
   // Check no keys were lost.
-  let keyset = (*keyset).clone();
-  for (key1, key2) in keyset.into_iter() {
+  for (key1, key2) in (*keyset).iter() {
     let mut lock_set = LockSet::new(&btree, TransactionMode::ReadOnly);
     let key1_present = BTree::contains_key(&mut lock_set, &key1);
     let key2_present = BTree::contains_key(&mut lock_set, &key2);

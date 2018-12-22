@@ -36,7 +36,7 @@ impl Node {
     }
   }
 
-  pub fn traverse_toward(&self, key: &str) -> TraversalDirection {
+  pub fn traverse_toward(&self, key: &str) -> TraversalDirection<&str> {
     match self {
       Node::LeafNode(leaf_node) => leaf_node.traverse_toward(key),
       Node::InteriorNode(interior_node) => {

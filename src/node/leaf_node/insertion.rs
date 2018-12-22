@@ -32,25 +32,30 @@ impl LeafNode {
 
   fn split(&mut self, btree: &BTree) -> SplitInfo {
     // We divide the keys into left/right portions.
-    let left_keys = self.keys[0..(self.max_key_capacity / 2)].to_vec();
-    let right_keys = self.keys[(self.max_key_capacity / 2)..].to_vec();
+    let right_keys = self.keys.split_off(self.max_key_capacity / 2);
 
     // We choose a new median.
-    let new_median = left_keys
+    let new_median = self.keys
       .last()
       .expect("Just split node must have keys")
       .clone();
+
+    // Extract values needed to move to right sibbling.
+    let right_max_value = std::mem::replace(
+      &mut self.max_value,
+      StringComparisonValue::DefiniteValue(new_median.clone()),
+    );
+    // Note that None is temporary here.
+    let right_next_node_identifier =
+      std::mem::replace(&mut self.next_node_identifier, None);
 
     // Create and store new right sibbilng leaf node.
     let new_right_identifier = LeafNode::store(
       btree,
       right_keys,
-      self.max_value.clone(),
-      self.next_node_identifier.clone(),
+      right_max_value,
+      right_next_node_identifier,
     );
-    self.keys = left_keys;
-    self.max_value =
-      StringComparisonValue::DefiniteValue(new_median.clone());
     self.next_node_identifier = Some(new_right_identifier.clone());
 
     // Let the caller know we split so that they can add the new

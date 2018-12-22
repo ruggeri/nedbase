@@ -30,7 +30,10 @@ impl BTree {
 
       // It is possible that we must move *right*, if the child we are
       // moving toward split.
-      let direction = guard.unwrap_node_ref().traverse_toward(key);
+      let direction = {
+        let node_ref = guard.unwrap_node_ref();
+        node_ref.traverse_toward(key).as_val()
+      };
       match direction {
         TraversalDirection::Arrived => break,
 
@@ -55,7 +58,11 @@ impl BTree {
       let guard = lock_set.node_read_guard(&current_identifier);
 
       // The leaf node may have split in the meantime!
-      let direction = guard.unwrap_node_ref().traverse_toward(key);
+      let direction = {
+        let node_ref = guard.unwrap_node_ref();
+        node_ref.traverse_toward(key).as_val()
+      };
+
       match direction {
         TraversalDirection::Arrived => {
           lock_set.hold_node_read_guard(&guard);

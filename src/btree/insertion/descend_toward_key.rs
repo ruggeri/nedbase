@@ -48,17 +48,16 @@ where
       (current_identifier, current_guard)
     };
 
+    // Unwrap node.
+    let node_ref = current_guard.unwrap_node_ref();
+
     // Let them stop early if they feel they have descended far enough.
-    {
-      let node_ref = current_guard.unwrap_node_ref();
-      if stop_early(&node_ref) == DescentDecision::StopEarly {
-        return insert_path;
-      }
+    if stop_early(&node_ref) == DescentDecision::StopEarly {
+      return insert_path;
     }
 
     // Decide which direction to move in.
-    let direction =
-      current_guard.unwrap_node_ref().traverse_toward(key);
+    let direction = node_ref.traverse_toward(key);
 
     match direction {
       // We made it all the way to the bottom! Rejoice!
@@ -70,7 +69,7 @@ where
       } => {
         insert_path.push(InsertPathEntry::ParentChild {
           parent_node_identifier: current_identifier,
-          current_node_identifier: child_node_identifier,
+          current_node_identifier: String::from(child_node_identifier),
         });
       }
 
@@ -80,7 +79,9 @@ where
         next_node_identifier,
       } => {
         let mut last_entry = insert_path.last_mut().unwrap();
-        last_entry.update_current_node_identifier(next_node_identifier);
+        last_entry.update_current_node_identifier(String::from(
+          next_node_identifier,
+        ));
       }
     }
   }

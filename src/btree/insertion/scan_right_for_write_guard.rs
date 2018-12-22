@@ -14,8 +14,10 @@ pub fn scan_right_for_write_guard(
   let mut current_identifier = String::from(start_identifier);
   loop {
     let current_guard = lock_set.node_write_guard(&current_identifier);
-    let direction =
-      current_guard.unwrap_node_ref().traverse_toward(key);
+    let direction = {
+      let node_ref = current_guard.unwrap_node_ref();
+      node_ref.traverse_toward(key).as_val()
+    };
 
     match direction {
       TraversalDirection::Arrived => {

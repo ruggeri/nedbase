@@ -48,38 +48,41 @@ impl InteriorNode {
 
   fn split(&mut self, btree: &BTree) -> SplitInfo {
     let new_median_idx = self.max_key_capacity / 2;
-    let new_median = self.splits[new_median_idx].clone();
 
+    // Split the split values into left and right. The last of the left
+    // splits is in truth going to be the new median.
+    let right_splits = self.splits.split_off(new_median_idx + 1);
+    let new_median = self.splits.pop().unwrap();
     // When taking lef_child_identifiers, remember that we need one more
-    // child_identifier than split key (thus `=new_median_idx`).
-    let left_splits = self.splits[0..new_median_idx].to_vec();
-    let left_child_identifiers =
-      self.child_identifiers[0..=new_median_idx].to_vec();
-
-    let right_splits = self.splits[(new_median_idx + 1)..].to_vec();
+    // child_identifier than split key.
     let right_child_identifiers =
-      self.child_identifiers[(new_median_idx + 1)..].to_vec();
+      self.child_identifiers.split_off(new_median_idx + 1);
 
-    // Create and store new interior node for the new right sibbling.
+    // Extract values needed to move to right sibbling.
+    let right_max_value = std::mem::replace(
+      &mut self.max_value,
+      StringComparisonValue::DefiniteValue(new_median.clone()),
+    );
+    // Note that None is temporary here.
+    let right_next_node_identifier =
+      std::mem::replace(&mut self.next_node_identifier, None);
+
+    // Create the right sibbling.
     let new_right_identifier = InteriorNode::store(
       btree,
       right_splits,
       right_child_identifiers,
-      self.max_value.clone(),
-      self.next_node_identifier.clone(),
+      right_max_value,
+      right_next_node_identifier,
     );
 
     // Update ourself, connecting us to the newly budded sibbling.
-    self.splits = left_splits;
-    self.child_identifiers = left_child_identifiers;
-    self.max_value =
-      StringComparisonValue::DefiniteValue(new_median.clone());
     self.next_node_identifier = Some(new_right_identifier.clone());
 
     // Return opaque type to user so they can propagate split upward.
     SplitInfo {
-      new_right_identifier,
       new_median,
+      new_right_identifier,
     }
   }
 }
