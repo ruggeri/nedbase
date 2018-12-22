@@ -1,3 +1,6 @@
+// At present this is dead code because I don't support deletion in my
+// B-Link tree. Maybe I can add this another day.
+
 use super::Node;
 use btree::BTree;
 use node::{InteriorNode, LeafNode, MergeOrRotateResult};
