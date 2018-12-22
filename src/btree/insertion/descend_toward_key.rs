@@ -58,10 +58,10 @@ where
 
     // Decide which direction to move in.
     let direction =
-      { current_guard.unwrap_node_ref().traverse_toward(key) };
+      current_guard.unwrap_node_ref().traverse_toward(key);
 
     match direction {
-      // We made it all the way to the bottom.
+      // We made it all the way to the bottom! Rejoice!
       TraversalDirection::Arrived => return insert_path,
 
       // Move down toward the leaves.

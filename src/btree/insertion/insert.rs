@@ -31,6 +31,7 @@ pub fn insert(
       leaf_identifier,
       key_to_insert,
     );
+
     // We have the write guard! Let's hold onto it for 2PL since we
     // are updating data stored here.
     lock_set.hold_node_write_guard(&leaf_guard);
@@ -50,7 +51,8 @@ pub fn insert(
     // May have to hold the sibbling; since the inserted key could have
     // ended up there. (In that case, it *may* be safe to release the
     // write lock on the node we originally inserted at. However, that
-    // lock may already be held for other 2PL inserts there...).
+    // lock may already be held for other 2PL inserts previously
+    // performed there... Easiest just to hold both locks).
     let sibbling_guard =
       lock_set.node_write_guard(&split_info.new_right_identifier);
     lock_set.hold_node_write_guard(&sibbling_guard);
@@ -58,7 +60,7 @@ pub fn insert(
     split_info
   };
 
-  // Now ascend back up the tree. We'll split whatever nodes are
-  // necessary to split as we walk back up.
+  // Now ascend back up the tree to handle the split of the leaf node.
+  // We may have to perform more splits as we move up.
   unwind_insert_path(btree, lock_set, insert_path, split_info);
 }

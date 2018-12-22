@@ -19,19 +19,21 @@ pub fn scan_right_for_write_guard(
 
     match direction {
       TraversalDirection::Arrived => {
-        // If we're scanning at leaf level.
+        // If we're scanning at leaf level, we'll know to stop because
+        // we'll have arrived at the leaf node.
         return current_guard;
       }
 
       TraversalDirection::MoveDown { .. } => {
-        // If we are scanning at interior level. We are only moving
-        // right, never down.
+        // If we are scanning at interior level, we'll know to stop
+        // because we are told to move down a level.
         return current_guard;
       }
 
       TraversalDirection::MoveRight {
         next_node_identifier,
       } => {
+        // Keep moving right!
         current_identifier = next_node_identifier;
       }
     }

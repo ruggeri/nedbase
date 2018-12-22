@@ -33,11 +33,13 @@ impl BTree {
       let direction = guard.unwrap_node_ref().traverse_toward(key);
       match direction {
         TraversalDirection::Arrived => break,
+
         TraversalDirection::MoveDown {
           child_node_identifier,
         } => {
           current_identifier = child_node_identifier;
         }
+
         TraversalDirection::MoveRight {
           next_node_identifier,
         } => {

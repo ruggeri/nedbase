@@ -105,7 +105,7 @@ fn check_interior_node(
       panic!("High limit disobeyed");
     }
 
-    // Recrusively check each child node.
+    // Recursively check each child node.
     let child_identifier = node.child_identifier_by_idx(idx);
     check_node(
       lock_set,

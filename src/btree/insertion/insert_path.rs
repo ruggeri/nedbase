@@ -10,12 +10,13 @@ pub enum InsertPathEntry {
   // When we start our descent, we start from a node we *think* is the
   // root (it was at the time we read the root identifier). However, we
   // may immediately have to walk right from the alleged root. Thus, I
-  // only call this the *current_node_identifier*.
+  // only call this the *alleged_root_identifier*.
   //
   // Anyway, if we unwind the path because of splitting, it may be that
-  // we must split this node. That may mean we have to create a new
-  // root. OR, it may mean that we need to redescend down to learn the
-  // new path down, so that we can continue our ascent.
+  // we must split this alleged root node. That may mean we have to
+  // create a new root. OR, it may mean that we need to redescend down
+  // to learn the new path down, so that we can continue our ascent
+  // toward the new root we never knew...
   RootLevelNode {
     // This can be different from the starting root if we walk right
     // from the root.

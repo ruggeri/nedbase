@@ -10,18 +10,6 @@ const NUM_KEYS: usize =
   MAX_KEYS_PER_NODE * MAX_KEYS_PER_NODE * MAX_KEYS_PER_NODE;
 const NUM_THREADS: u32 = 32;
 
-// TODO: Everything works fine for single-query transactions, but there
-// is potential deadlock even when doing carefully ordered updates
-// because descending takes and holds locks even when it can't
-// succeed...
-//
-// The solution is either:
-//
-// (1) Release locks on descents that fail and wait to be awoken by a
-//     coordinator,
-// (2) Adopt a strategy like B-Link trees that does not need to hold
-//     multiple simultaneous write locks.
-
 fn main() {
   // Make the BTree.
   let btree = Arc::new(BTree::new(MAX_KEYS_PER_NODE));
@@ -62,6 +50,7 @@ fn main() {
     handle.join().expect("no threads should panic");
   }
 
+  // Check no keys were lost.
   let keyset = (*keyset).clone();
   for (key1, key2) in keyset.into_iter() {
     let mut lock_set = LockSet::new(&btree, TransactionMode::ReadOnly);
@@ -73,6 +62,7 @@ fn main() {
     }
   }
 
+  // Finally, validate the structure of the tree.
   let mut lock_set = LockSet::new(&btree, TransactionMode::ReadOnly);
   btree.validate(&mut lock_set)
 }
@@ -93,6 +83,7 @@ fn run_thread(btree: &Arc<BTree>, keyset: Arc<Vec<(String, String)>>) {
 
   for idx in 0..keyset.len() {
     {
+      // Do a transaction of two insertions.
       let (key1, key2) = keyset[idx].clone();
       let mut lock_set =
         LockSet::new(btree, TransactionMode::ReadWrite);
@@ -111,6 +102,7 @@ fn run_thread(btree: &Arc<BTree>, keyset: Arc<Vec<(String, String)>>) {
     }
 
     {
+      // Do a transaction of two reads.
       let idx = (idx + third_of_keyset) % keyset.len();
       let (key1, key2) = keyset[idx].clone();
       let mut lock_set = LockSet::new(btree, TransactionMode::ReadOnly);
