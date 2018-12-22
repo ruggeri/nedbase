@@ -1,8 +1,8 @@
 use super::LeafNode;
 use btree::BTree;
 use node::{
-  util::search_sorted_strings_for_str, InsertionResult, MaxValue,
-  SplitInfo,
+  util::search_sorted_strings_for_str, InsertionResult, SplitInfo,
+  StringComparisonValue,
 };
 
 // These are methods for inserting a value into the LeafNode, and for
@@ -49,7 +49,8 @@ impl LeafNode {
       self.next_node_identifier.clone(),
     );
     self.keys = left_keys;
-    self.max_value = MaxValue::DefiniteValue(new_median.clone());
+    self.max_value =
+      StringComparisonValue::DefiniteValue(new_median.clone());
     self.next_node_identifier = Some(new_right_identifier.clone());
 
     // Let the caller know we split so that they can add the new

@@ -1,6 +1,8 @@
 use super::InteriorNode;
 use btree::BTree;
-use node::{util::search_sorted_strings_for_str, MaxValue, SplitInfo};
+use node::{
+  util::search_sorted_strings_for_str, SplitInfo, StringComparisonValue,
+};
 
 impl InteriorNode {
   // This method is used to "handle" the split of a child. Normally that
@@ -70,7 +72,8 @@ impl InteriorNode {
     // Update ourself, connecting us to the newly budded sibbling.
     self.splits = left_splits;
     self.child_identifiers = left_child_identifiers;
-    self.max_value = MaxValue::DefiniteValue(new_median.clone());
+    self.max_value =
+      StringComparisonValue::DefiniteValue(new_median.clone());
     self.next_node_identifier = Some(new_right_identifier.clone());
 
     // Return opaque type to user so they can propagate split upward.

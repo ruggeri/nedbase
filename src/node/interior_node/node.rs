@@ -1,4 +1,4 @@
-use node::{MaxValue, Node};
+use node::{Node, StringComparisonValue};
 
 #[derive(Debug)]
 pub struct InteriorNode {
@@ -13,7 +13,7 @@ pub struct InteriorNode {
   // identifiers is always one more than the number of keys.
   pub(super) splits: Vec<String>,
   pub(super) child_identifiers: Vec<String>,
-  pub(super) max_value: MaxValue,
+  pub(super) max_value: StringComparisonValue<String>,
   pub(super) next_node_identifier: Option<String>,
   pub(super) max_key_capacity: usize,
 }
@@ -23,8 +23,8 @@ impl InteriorNode {
     &self.identifier
   }
 
-  pub fn max_value(&self) -> &MaxValue {
-    &self.max_value
+  pub fn max_value(&self) -> StringComparisonValue<&str> {
+    self.max_value.as_ref()
   }
 
   pub fn next_node_identifier(&self) -> Option<&String> {

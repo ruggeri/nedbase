@@ -1,6 +1,6 @@
 use super::InteriorNode;
 use btree::BTree;
-use node::{MaxValue, SplitInfo};
+use node::{SplitInfo, StringComparisonValue};
 
 // These methods all pertain to storing an InteriorNode.
 impl InteriorNode {
@@ -9,7 +9,7 @@ impl InteriorNode {
     btree: &BTree,
     splits: Vec<String>,
     child_identifiers: Vec<String>,
-    max_value: MaxValue,
+    max_value: StringComparisonValue<String>,
     next_node_identifier: Option<String>,
   ) -> String {
     let identifier = btree.get_new_identifier();
@@ -38,7 +38,7 @@ impl InteriorNode {
       btree,
       vec![split_info.new_median],
       vec![old_root_identifier, split_info.new_right_identifier],
-      MaxValue::Infinity,
+      StringComparisonValue::Infinity,
       None,
     )
   }

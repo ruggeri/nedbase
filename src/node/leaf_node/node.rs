@@ -1,11 +1,11 @@
 use node::util::search_sorted_strings_for_str;
-use node::{MaxValue, Node, TraversalDirection};
+use node::{Node, StringComparisonValue, TraversalDirection};
 
 #[derive(Debug)]
 pub struct LeafNode {
   pub(super) identifier: String,
   pub(super) keys: Vec<String>,
-  pub(super) max_value: MaxValue,
+  pub(super) max_value: StringComparisonValue<String>,
   pub(super) next_node_identifier: Option<String>,
   pub(super) max_key_capacity: usize,
 }
