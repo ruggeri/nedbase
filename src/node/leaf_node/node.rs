@@ -23,6 +23,10 @@ impl LeafNode {
     &self.keys
   }
 
+  pub fn max_value(&self) -> StringComparisonValue<&str> {
+    self.max_value.as_ref()
+  }
+
   pub fn next_node_identifier(&self) -> Option<&String> {
     self.next_node_identifier.as_ref()
   }

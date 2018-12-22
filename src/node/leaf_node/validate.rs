@@ -7,6 +7,12 @@ impl LeafNode {
     min_value: StringComparisonValue<&str>,
     max_value: StringComparisonValue<&str>,
   ) {
+    // max_value passed in from parent should equal the max_value of
+    // the node.
+    if max_value != self.max_value() {
+      panic!("max_value should equal max_value passed in from parent");
+    }
+
     // All keys must be greater than the low limit.
     let mut prev_value = min_value;
     for key in self.keys() {

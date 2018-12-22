@@ -9,15 +9,14 @@ impl InteriorNode {
     min_value: StringComparisonValue<&str>,
     max_value: StringComparisonValue<&str>,
   ) {
-    // All keys must be greater than the low limit.
-    let mut prev_split_value = min_value;
-
     // max_value passed in from parent should equal the max_value of
     // the node.
     if max_value != self.max_value() {
       panic!("max_value should equal max_value passed in from parent");
     }
 
+    // All keys must be greater than the low limit.
+    let mut prev_split_value = min_value;
     for (idx, split_value) in self.splits().iter().enumerate() {
       // Keys must be in ascending order (with no duplicates).
       if prev_split_value.is_ge_to(split_value) {
