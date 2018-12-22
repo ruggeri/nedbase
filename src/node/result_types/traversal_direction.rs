@@ -13,7 +13,7 @@ where
 }
 
 impl<T: Borrow<str>> TraversalDirection<T> {
-  pub fn as_val(self) -> TraversalDirection<String> {
+  pub fn as_val(&self) -> TraversalDirection<String> {
     match self {
       TraversalDirection::Arrived => TraversalDirection::Arrived,
 
