@@ -13,7 +13,7 @@ pub fn unwind_insert_path(
   loop {
     // Pop one entry as we scroll back up the tree.
     let path_entry = match insert_path.pop() {
-      None => panic!("Shouldn't ever run out of entries without at least reaching a \"root\" node..."),
+      None => panic!("Shouldn't ever run out of entries without at least reaching an alleged root node..."),
       Some(path_entry) => path_entry,
     };
 
@@ -24,7 +24,8 @@ pub fn unwind_insert_path(
 
     // Handle the result of unwinding the entry.
     match unwinding_result {
-      // Either the parent didn't split, OR
+      // Either the parent didn't split when it handled the child's
+      // split, OR
       UnwindingResult::FinishedUnwinding => return,
 
       // We must continue unwinding, OR

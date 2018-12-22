@@ -5,7 +5,8 @@ use node::{InteriorNode, SplitInfo};
 
 // We have split a node that we thought of as "root level." If this is
 // the root, then we should update the root identifier. But if it no
-// longer is, we must redescend to find the path further back.
+// longer is, we must redescend to find the path further back to
+// continue propagation up.
 pub fn unwind_root_level_entry(
   btree: &BTree,
   lock_set: &mut LockSet,
