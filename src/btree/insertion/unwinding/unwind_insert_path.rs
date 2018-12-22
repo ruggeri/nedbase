@@ -17,10 +17,9 @@ pub fn unwind_insert_path(
       Some(path_entry) => path_entry,
     };
 
-    // Unwind the entry. I clone here because we may actually need to
-    // reuse the split info (if we reloop around).
+    // Unwind the entry.
     let unwinding_result =
-      path_entry.unwind_entry(btree, lock_set, split_info.clone());
+      path_entry.unwind_entry(btree, lock_set, split_info);
 
     // Handle the result of unwinding the entry.
     match unwinding_result {
@@ -36,7 +35,8 @@ pub fn unwind_insert_path(
       // We couldn't continue unwinding becauuse we ran out of nodes. In
       // that case, redescend to learn the path down to the currently
       // split node. Then continue unwinding :-)
-      UnwindingResult::MustRedescend => {
+      UnwindingResult::MustRedescend(original_split_info) => {
+        split_info = original_split_info;
         insert_path =
           redescend_toward_last_split(lock_set, &split_info);
       }

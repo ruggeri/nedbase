@@ -26,8 +26,9 @@ pub fn unwind_root_level_entry(
   // continue unwinding.
   if alleged_root_identifier != *root_identifier {
     // Root split on us! Uh-oh! We have to redescend before we can
-    // continue propagating splits further up.
-    return UnwindingResult::MustRedescend;
+    // continue propagating splits further up. Let them have the
+    // SplitInfo back for possible reuse.
+    return UnwindingResult::MustRedescend(split_info);
   }
 
   // Okay! We actually are spliting the root for reals! Special day!
