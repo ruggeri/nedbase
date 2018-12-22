@@ -6,13 +6,12 @@ pub struct InteriorNode {
   // methods of InteriorNode will need them and are defined in sibbling
   // modules.
   pub(super) identifier: String,
-  pub(super) level_identifier: String,
   // The rule is that all keys such that `target_key <= keys[idx]` live
   // in child `idx`.
   //
   // Another rule is that for interior nodes the number of child
   // identifiers is always one more than the number of keys.
-  pub splits: Vec<String>,
+  pub(super) splits: Vec<String>,
   pub(super) child_identifiers: Vec<String>,
   pub(super) max_value: MaxValue,
   pub(super) next_node_identifier: Option<String>,
@@ -22,10 +21,6 @@ pub struct InteriorNode {
 impl InteriorNode {
   pub fn identifier(&self) -> &str {
     &self.identifier
-  }
-
-  pub fn level_identifier(&self) -> &str {
-    &self.level_identifier
   }
 
   pub fn max_value(&self) -> &MaxValue {

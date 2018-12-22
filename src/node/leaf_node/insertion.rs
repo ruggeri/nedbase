@@ -41,7 +41,7 @@ impl LeafNode {
       .expect("Just split node must have keys")
       .clone();
 
-    // Create and store new leaf nodes.
+    // Create and store new right sibbilng leaf node.
     let new_right_identifier = LeafNode::store(
       btree,
       right_keys,
@@ -52,6 +52,8 @@ impl LeafNode {
     self.max_value = MaxValue::DefiniteValue(new_median.clone());
     self.next_node_identifier = Some(new_right_identifier.clone());
 
+    // Let the caller know we split so that they can add the new
+    // sibbling as a child of the previous level.
     InsertionResult::DidInsertWithSplit(SplitInfo {
       new_right_identifier,
       new_median,

@@ -22,7 +22,7 @@ impl LeafNode {
   }
 
   pub fn is_overfull(&self) -> bool {
-    self.num_keys() >= self.max_key_capacity
+    self.num_keys() > self.max_key_capacity
   }
 
   pub fn num_keys(&self) -> usize {

@@ -7,7 +7,6 @@ impl InteriorNode {
   // This method is used internally when splitting an InteriorNode.
   pub(super) fn store(
     btree: &BTree,
-    level_identifier: String,
     splits: Vec<String>,
     child_identifiers: Vec<String>,
     max_value: MaxValue,
@@ -17,7 +16,6 @@ impl InteriorNode {
 
     let node = InteriorNode {
       identifier: identifier.clone(),
-      level_identifier,
       splits,
       child_identifiers,
       max_value,
@@ -38,7 +36,6 @@ impl InteriorNode {
   ) -> String {
     InteriorNode::store(
       btree,
-      btree.get_new_identifier(),
       vec![split_info.new_median],
       vec![old_root_identifier, split_info.new_right_identifier],
       MaxValue::Infinity,

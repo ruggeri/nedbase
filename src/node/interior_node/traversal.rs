@@ -3,16 +3,12 @@ use node::{util::search_sorted_strings_for_str, TraversalDirection};
 
 // These methods are all ways to move from an InteriorNode to a child.
 impl InteriorNode {
-  pub fn child_identifier_by_key(&self, key: &str) -> &str {
-    let idx = match search_sorted_strings_for_str(&self.splits, key) {
-      Ok(idx) => idx,
-      Err(idx) => idx,
-    };
-
+  pub fn child_identifier_by_idx(&self, idx: usize) -> &str {
     &self.child_identifiers[idx]
   }
 
-  pub fn child_identifier_by_idx(&self, idx: usize) -> &str {
+  pub fn child_identifier_by_key(&self, key: &str) -> &str {
+    let idx = self.child_idx_by_key(key);
     &self.child_identifiers[idx]
   }
 

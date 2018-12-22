@@ -1,7 +1,7 @@
 use super::UnwindingResult;
 use btree::{insertion::scan_right_for_write_guard, BTree};
 use locking::LockSet;
-use node::{InsertionResult, SplitInfo};
+use node::SplitInfo;
 
 // Handle the split of the child at the parent. This may split the
 // parent, requiring further unwinding.
@@ -25,10 +25,10 @@ pub fn unwind_parent_child_entry(
 
   // Handle the split at the node. Maybe we have to continue unwinding.
   match parent_node.handle_split(btree, split_info) {
-    InsertionResult::DidInsertWithSplit(new_split_info) => {
+    None => UnwindingResult::FinishedUnwinding,
+
+    Some(new_split_info) => {
       UnwindingResult::MustContinueUnwinding(new_split_info)
     }
-
-    _ => UnwindingResult::FinishedUnwinding,
   }
 }

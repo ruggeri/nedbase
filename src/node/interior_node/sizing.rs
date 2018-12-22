@@ -25,7 +25,7 @@ impl InteriorNode {
   }
 
   pub fn is_overfull(&self) -> bool {
-    self.num_split_keys() >= self.max_key_capacity
+    self.num_split_keys() > self.max_key_capacity
   }
 
   pub fn num_children(&self) -> usize {
