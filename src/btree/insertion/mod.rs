@@ -4,10 +4,10 @@ mod insert_path;
 mod scan_right_for_write_guard;
 mod unwinding;
 
-pub(in self) use self::descend_toward_key::*;
-pub(in self) use self::insert_path::*;
-pub(in self) use self::scan_right_for_write_guard::*;
-pub(in self) use self::unwinding::*;
+pub(self) use self::descend_toward_key::*;
+pub(self) use self::insert_path::*;
+pub(self) use self::scan_right_for_write_guard::*;
+pub(self) use self::unwinding::*;
 
 use btree::BTree;
 use locking::LockSet;

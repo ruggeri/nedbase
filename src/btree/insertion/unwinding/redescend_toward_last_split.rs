@@ -1,4 +1,6 @@
-use btree::insertion::{DescentDecision, InsertPathEntry, descend_toward_key};
+use btree::insertion::{
+  descend_toward_key, DescentDecision, InsertPathEntry,
+};
 use locking::LockSet;
 use node::SplitInfo;
 
@@ -9,22 +11,18 @@ pub fn redescend_toward_last_split(
   lock_set: &mut LockSet,
   split_info: &SplitInfo,
 ) -> Vec<InsertPathEntry> {
-  descend_toward_key(
-    lock_set,
-    &split_info.new_median,
-    |node_ref| {
-      let next_node_identifier = match node_ref.next_node_identifier() {
-        None => return DescentDecision::ContinueDescending,
-        Some(next_node_identifier) => next_node_identifier
-      };
+  descend_toward_key(lock_set, &split_info.new_median, |node_ref| {
+    let next_node_identifier = match node_ref.next_node_identifier() {
+      None => return DescentDecision::ContinueDescending,
+      Some(next_node_identifier) => next_node_identifier,
+    };
 
-      // We know we have found the parent at which to insert the new
-      // right child when we have found where it's left sibbling lives.
-      if next_node_identifier == &split_info.new_right_identifier {
-        DescentDecision::StopEarly
-      } else {
-        DescentDecision::ContinueDescending
-      }
-    },
-  )
+    // We know we have found the parent at which to insert the new
+    // right child when we have found where it's left sibbling lives.
+    if next_node_identifier == &split_info.new_right_identifier {
+      DescentDecision::StopEarly
+    } else {
+      DescentDecision::ContinueDescending
+    }
+  })
 }

@@ -21,10 +21,7 @@ impl InteriorNode {
   }
 
   pub fn is_deficient(&self) -> bool {
-    Node::_is_deficient(
-      self.num_split_keys(),
-      self.max_key_capacity,
-    )
+    Node::_is_deficient(self.num_split_keys(), self.max_key_capacity)
   }
 
   pub fn is_overfull(&self) -> bool {

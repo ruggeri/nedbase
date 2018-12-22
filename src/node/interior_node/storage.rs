@@ -40,10 +40,7 @@ impl InteriorNode {
       btree,
       btree.get_new_identifier(),
       vec![split_info.new_median],
-      vec![
-        old_root_identifier,
-        split_info.new_right_identifier,
-      ],
+      vec![old_root_identifier, split_info.new_right_identifier],
       MaxValue::Infinity,
       None,
     )

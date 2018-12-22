@@ -1,6 +1,6 @@
 use super::{
   LockSet, LockSetNodeWriteGuard, LockSetRootIdentifierWriteGuard,
-  LockSetValue, LockSetWriteGuard
+  LockSetValue, LockSetWriteGuard,
 };
 use locking::{
   Guard, LockMode, LockTarget, TransactionMode, WriteGuard,
@@ -17,9 +17,8 @@ impl LockSet {
     identifier: &str,
   ) -> LockSetNodeWriteGuard {
     // TODO: This String::from seems wasteful just to do a lookup...
-    let guard = self.write_guard(&LockTarget::Node(
-      String::from(identifier),
-    ));
+    let guard =
+      self.write_guard(&LockTarget::Node(String::from(identifier)));
     LockSetNodeWriteGuard::from_guard(guard)
   }
 
@@ -39,10 +38,7 @@ impl LockSet {
     self.held_guards.insert(target, strong_ref_cell_guard);
   }
 
-  pub fn hold_write_guard(
-    &mut self,
-    node_guard: &LockSetWriteGuard,
-  ) {
+  pub fn hold_write_guard(&mut self, node_guard: &LockSetWriteGuard) {
     let strong_ref_cell_guard = node_guard.clone_ref_cell_guard();
     let target = strong_ref_cell_guard.borrow().target();
     self.held_guards.insert(target, strong_ref_cell_guard);

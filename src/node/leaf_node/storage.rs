@@ -11,7 +11,12 @@ impl LeafNode {
   }
 
   // This is used internally when splitting.
-  pub(super) fn store(btree: &BTree, keys: Vec<String>, max_value: MaxValue, next_node_identifier: Option<String>) -> String {
+  pub(super) fn store(
+    btree: &BTree,
+    keys: Vec<String>,
+    max_value: MaxValue,
+    next_node_identifier: Option<String>,
+  ) -> String {
     let identifier = btree.get_new_identifier();
 
     let node = LeafNode {

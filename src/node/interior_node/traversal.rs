@@ -45,9 +45,13 @@ impl InteriorNode {
 
   pub fn traverse_toward(&self, key: &str) -> TraversalDirection {
     if !self.max_value.is_ge_to(key) {
-      let next_node_identifier =
-        self.next_node_identifier.clone().expect("node with definite max value must have next");
-      TraversalDirection::MoveRight { next_node_identifier }
+      let next_node_identifier = self
+        .next_node_identifier
+        .clone()
+        .expect("node with definite max value must have next");
+      TraversalDirection::MoveRight {
+        next_node_identifier,
+      }
     } else {
       let child_node_identifier = self.child_identifier_by_key(key);
       TraversalDirection::MoveDown {

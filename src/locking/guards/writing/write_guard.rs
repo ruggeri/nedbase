@@ -42,8 +42,12 @@ impl WriteGuard {
 
   pub fn target(&self) -> LockTarget {
     match self {
-      WriteGuard::RootIdentifierWriteGuard(..) => LockTarget::RootIdentifier,
-      WriteGuard::NodeWriteGuard(guard) => LockTarget::Node(String::from(guard.identifier()))
+      WriteGuard::RootIdentifierWriteGuard(..) => {
+        LockTarget::RootIdentifier
+      }
+      WriteGuard::NodeWriteGuard(guard) => {
+        LockTarget::Node(String::from(guard.identifier()))
+      }
     }
   }
 

@@ -31,9 +31,13 @@ impl LeafNode {
     if self.max_value.is_ge_to(key) {
       TraversalDirection::Arrived
     } else {
-      let next_node_identifier =
-        self.next_node_identifier.clone().expect("node with definite max value must have next");
-      TraversalDirection::MoveRight { next_node_identifier }
+      let next_node_identifier = self
+        .next_node_identifier
+        .clone()
+        .expect("node with definite max value must have next");
+      TraversalDirection::MoveRight {
+        next_node_identifier,
+      }
     }
   }
 

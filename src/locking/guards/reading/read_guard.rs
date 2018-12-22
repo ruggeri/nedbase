@@ -40,8 +40,12 @@ impl ReadGuard {
 
   pub fn target(&self) -> LockTarget {
     match self {
-      ReadGuard::RootIdentifierReadGuard(..) => LockTarget::RootIdentifier,
-      ReadGuard::NodeReadGuard(guard) => LockTarget::Node(String::from(guard.identifier()))
+      ReadGuard::RootIdentifierReadGuard(..) => {
+        LockTarget::RootIdentifier
+      }
+      ReadGuard::NodeReadGuard(guard) => {
+        LockTarget::Node(String::from(guard.identifier()))
+      }
     }
   }
 

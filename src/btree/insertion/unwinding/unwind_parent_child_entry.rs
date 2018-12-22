@@ -1,8 +1,5 @@
 use super::UnwindingResult;
-use btree::{
-  BTree,
-  insertion::scan_right_for_write_guard,
-};
+use btree::{insertion::scan_right_for_write_guard, BTree};
 use locking::LockSet;
 use node::{InsertionResult, SplitInfo};
 

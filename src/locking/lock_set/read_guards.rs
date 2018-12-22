@@ -60,7 +60,9 @@ impl LockSetReadGuard {
 
     match self {
       Node(_) => panic!(msg),
-      RootIdentifier(root_identifier_lock) => root_identifier_lock.identifier()
+      RootIdentifier(root_identifier_lock) => {
+        root_identifier_lock.identifier()
+      }
     }
   }
 }
@@ -70,15 +72,17 @@ impl LockSetNodeReadGuard {
     LockSetNodeReadGuard { guard }
   }
 
-  pub(in super) fn clone_ref_cell_guard(&self) -> Rc<RefCell<Guard>> {
+  pub(super) fn clone_ref_cell_guard(&self) -> Rc<RefCell<Guard>> {
     Rc::clone(&self.guard)
   }
 
   pub fn is_leaf_node(&self) -> bool {
     let guard = self.guard.borrow();
-    guard.unwrap_node_ref(
-      "Guard ref in LockSetNodeReadGuard doesn't hold Node?"
-    ).is_leaf_node()
+    guard
+      .unwrap_node_ref(
+        "Guard ref in LockSetNodeReadGuard doesn't hold Node?",
+      )
+      .is_leaf_node()
   }
 
   // This lets them drop the lock early if they way, without having to

@@ -1,7 +1,8 @@
 use super::LeafNode;
 use btree::BTree;
 use node::{
-  util::search_sorted_strings_for_str, InsertionResult, MaxValue, SplitInfo,
+  util::search_sorted_strings_for_str, InsertionResult, MaxValue,
+  SplitInfo,
 };
 
 // These are methods for inserting a value into the LeafNode, and for
@@ -29,10 +30,7 @@ impl LeafNode {
     }
   }
 
-  fn split(
-    &mut self,
-    btree: &BTree,
-  ) -> InsertionResult {
+  fn split(&mut self, btree: &BTree) -> InsertionResult {
     // We divide the keys into left/right portions.
     let left_keys = self.keys[0..(self.max_key_capacity / 2)].to_vec();
     let right_keys = self.keys[(self.max_key_capacity / 2)..].to_vec();

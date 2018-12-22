@@ -1,6 +1,6 @@
 use super::{
-  descend_toward_key,
-  scan_right_for_write_guard, DescentDecision, unwind_insert_path
+  descend_toward_key, scan_right_for_write_guard, unwind_insert_path,
+  DescentDecision,
 };
 use btree::BTree;
 use locking::LockSet;
@@ -13,10 +13,9 @@ pub fn insert(
   key_to_insert: &str,
 ) {
   // Build a path to the leaf where we should do the inserting.
-  let insert_path =
-    descend_toward_key(lock_set, key_to_insert, |_| {
-      DescentDecision::ContinueDescending
-    });
+  let insert_path = descend_toward_key(lock_set, key_to_insert, |_| {
+    DescentDecision::ContinueDescending
+  });
 
   // Perform the insert at the leaf node, possibly splitting that leaf.
   let split_info = {

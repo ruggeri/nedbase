@@ -5,8 +5,9 @@ use nedbase::{BTree, LockSet, TransactionMode};
 use std::sync::Arc;
 use std::thread;
 
-const MAX_KEYS_PER_NODE: usize = 128;
-const NUM_KEYS: usize = MAX_KEYS_PER_NODE * MAX_KEYS_PER_NODE * MAX_KEYS_PER_NODE;
+const MAX_KEYS_PER_NODE: usize = 32;
+const NUM_KEYS: usize =
+  MAX_KEYS_PER_NODE * MAX_KEYS_PER_NODE * MAX_KEYS_PER_NODE;
 const NUM_THREADS: u32 = 32;
 
 // TODO: Everything works fine for single-query transactions, but there
@@ -93,7 +94,8 @@ fn run_thread(btree: &Arc<BTree>, keyset: Arc<Vec<(String, String)>>) {
   for idx in 0..keyset.len() {
     {
       let (key1, key2) = keyset[idx].clone();
-      let mut lock_set = LockSet::new(btree, TransactionMode::ReadWrite);
+      let mut lock_set =
+        LockSet::new(btree, TransactionMode::ReadWrite);
 
       BTree::insert(btree, &mut lock_set, &key1);
       let key1_present = BTree::contains_key(&mut lock_set, &key1);

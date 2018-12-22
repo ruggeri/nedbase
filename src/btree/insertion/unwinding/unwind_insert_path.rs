@@ -1,8 +1,5 @@
-use super::{UnwindingResult, redescend_toward_last_split};
-use btree::{
-  BTree,
-  insertion::InsertPathEntry,
-};
+use super::{redescend_toward_last_split, UnwindingResult};
+use btree::{insertion::InsertPathEntry, BTree};
 use locking::LockSet;
 use node::SplitInfo;
 
@@ -39,11 +36,9 @@ pub fn unwind_insert_path(
       // that case, redescend to learn the path down to the currently
       // split node. Then continue unwinding :-)
       UnwindingResult::MustRedescend => {
-        insert_path = redescend_toward_last_split(
-          lock_set,
-          &split_info
-        );
+        insert_path =
+          redescend_toward_last_split(lock_set, &split_info);
       }
     }
-  };
+  }
 }

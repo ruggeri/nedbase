@@ -19,8 +19,8 @@ impl LockSet {
     identifier: &str,
   ) -> LockSetNodeReadGuard {
     // TODO: This String::from seems wasteful just to do a lookup...
-    let guard = self
-      .read_guard(&LockTarget::Node(String::from(identifier)));
+    let guard =
+      self.read_guard(&LockTarget::Node(String::from(identifier)));
     LockSetNodeReadGuard::from_guard(guard)
   }
 
@@ -37,10 +37,10 @@ impl LockSet {
   ) {
     let strong_ref_cell_guard = node_guard.clone_ref_cell_guard();
     self.held_guards.insert(
-      LockTarget::Node(
-        String::from(node_guard.unwrap_node_ref().identifier())
-      ),
-      strong_ref_cell_guard
+      LockTarget::Node(String::from(
+        node_guard.unwrap_node_ref().identifier(),
+      )),
+      strong_ref_cell_guard,
     );
   }
 

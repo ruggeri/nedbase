@@ -1,6 +1,9 @@
 use super::InteriorNode;
 use btree::BTree;
-use node::{InsertionResult, MaxValue, SplitInfo, util::search_sorted_strings_for_str};
+use node::{
+  util::search_sorted_strings_for_str, InsertionResult, MaxValue,
+  SplitInfo,
+};
 
 impl InteriorNode {
   pub fn handle_split(
@@ -14,7 +17,10 @@ impl InteriorNode {
       panic!("Ancestor must have split in the meantime...")
     }
 
-    let split_idx = match search_sorted_strings_for_str(&self.splits, &child_split_info.new_median) {
+    let split_idx = match search_sorted_strings_for_str(
+      &self.splits,
+      &child_split_info.new_median,
+    ) {
       Ok(_) => panic!("median should never be re-inserted"),
       Err(split_idx) => split_idx,
     };
@@ -22,10 +28,9 @@ impl InteriorNode {
     // Note that the left child is already in the list of
     // child_identifiers.
     self.splits.insert(split_idx, child_split_info.new_median);
-    self.child_identifiers.insert(
-      split_idx + 1,
-      child_split_info.new_right_identifier,
-    );
+    self
+      .child_identifiers
+      .insert(split_idx + 1, child_split_info.new_right_identifier);
 
     if !self.is_overfull() {
       InsertionResult::DidInsert
@@ -35,10 +40,7 @@ impl InteriorNode {
     }
   }
 
-  fn split(
-    &mut self,
-    btree: &BTree,
-  ) -> InsertionResult {
+  fn split(&mut self, btree: &BTree) -> InsertionResult {
     let new_median_idx = self.max_key_capacity / 2;
     let new_median = self.splits[new_median_idx].clone();
 
@@ -53,15 +55,14 @@ impl InteriorNode {
       self.child_identifiers[(new_median_idx + 1)..].to_vec();
 
     // Create and store new interior nodes.
-    let new_right_identifier =
-      InteriorNode::store(
-        btree,
-        String::from(self.level_identifier()),
-        right_splits,
-        right_child_identifiers,
-        self.max_value.clone(),
-        self.next_node_identifier.clone(),
-      );
+    let new_right_identifier = InteriorNode::store(
+      btree,
+      String::from(self.level_identifier()),
+      right_splits,
+      right_child_identifiers,
+      self.max_value.clone(),
+      self.next_node_identifier.clone(),
+    );
 
     self.splits = left_splits;
     self.child_identifiers = left_child_identifiers;

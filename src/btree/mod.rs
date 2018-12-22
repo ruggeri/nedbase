@@ -1,6 +1,6 @@
 #[allow(clippy::module_inception)]
 mod btree;
-pub(in self) mod insertion;
+pub(self) mod insertion;
 mod lookup;
 mod storage;
 mod validate;
