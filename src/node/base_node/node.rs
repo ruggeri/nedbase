@@ -27,6 +27,13 @@ impl Node {
     }
   }
 
+  pub fn next_node_identifier(&self) -> Option<&String> {
+    match self {
+      Node::LeafNode(leaf_node) => leaf_node.next_node_identifier(),
+      Node::InteriorNode(interior_node) => interior_node.next_node_identifier(),
+    }
+  }
+
   pub fn traverse_toward(&self, key: &str) -> TraversalDirection {
     match self {
       Node::LeafNode(leaf_node) => leaf_node.traverse_toward(key),

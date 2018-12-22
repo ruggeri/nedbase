@@ -32,6 +32,10 @@ impl InteriorNode {
     &self.max_value
   }
 
+  pub fn next_node_identifier(&self) -> Option<&String> {
+    self.next_node_identifier.as_ref()
+  }
+
   pub fn splits(&self) -> &Vec<String> {
     &self.splits
   }
