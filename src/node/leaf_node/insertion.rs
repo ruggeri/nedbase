@@ -26,11 +26,11 @@ impl LeafNode {
       InsertionResult::DidInsert
     } else {
       // Welp, we have to split after all.
-      self.split(btree)
+      InsertionResult::DidInsertWithSplit(self.split(btree))
     }
   }
 
-  fn split(&mut self, btree: &BTree) -> InsertionResult {
+  fn split(&mut self, btree: &BTree) -> SplitInfo {
     // We divide the keys into left/right portions.
     let left_keys = self.keys[0..(self.max_key_capacity / 2)].to_vec();
     let right_keys = self.keys[(self.max_key_capacity / 2)..].to_vec();
@@ -55,9 +55,9 @@ impl LeafNode {
 
     // Let the caller know we split so that they can add the new
     // sibbling as a child of the previous level.
-    InsertionResult::DidInsertWithSplit(SplitInfo {
+    SplitInfo {
       new_right_identifier,
       new_median,
-    })
+    }
   }
 }
